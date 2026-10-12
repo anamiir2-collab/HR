@@ -1,0 +1,13 @@
+{
+  "name": "ZenHR | إدارة الموارد البشرية",
+  "short_name": "ZenHR",
+  "description": "نظام عربي لإدارة الموارد البشرية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f6",
+  "theme_color": "#174e3e",
+  "icons": []
+}
