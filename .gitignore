@@ -1,0 +1,26 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Node (if any tooling added later)
+node_modules/
+npm-debug.log*
+
+# Build artifacts (none currently, but reserved)
+dist/
+build/
+
+# Local env
+.env
+.env.local
+
+# Editor configs
+.vscode/
+.idea/
+
+# Backups created locally for testing (don't commit)
+*.backup.json
+zenhr-backup-*.json
