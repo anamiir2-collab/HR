@@ -1,0 +1,1 @@
+(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.payroll=d.payroll||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Payroll={all:()=>d.payroll.slice(),calculate:x=>({gross:(+x.basic||0)+(+x.allowances||0)+(+x.rewards||0),net:(+x.basic||0)+(+x.allowances||0)+(+x.rewards||0)-(+x.deductions||0)}),add:x=>{const r={id:ZenHR.Utils.id("pay"),...x};d.payroll.push(r);return r}};})(window);
