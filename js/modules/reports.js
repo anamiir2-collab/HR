@@ -1,0 +1,1 @@
+(function(g){g.ZenHR=g.ZenHR||{};g.ZenHR.Reports={summary:()=>{const d=g.ZenHRData||{};return {employees:(d.employees||[]).length,attendance:(d.attendance||[]).length,leavesPending:(d.leaves||[]).filter(x=>x.status==="قيد المراجعة").length,payrollTotal:(d.payroll||[]).reduce((s,x)=>s+(Number(x.net)||0),0)}}};})(window);
