@@ -1,0 +1,1 @@
+(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.shifts=d.shifts||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Shifts={all:()=>d.shifts.slice(),add:x=>{const r={id:ZenHR.Utils.id("shift"),name:x.name||"",start:x.start||"09:00",end:x.end||"17:00",days:Array.isArray(x.days)?x.days:[]};d.shifts.push(r);return r}};})(window);
