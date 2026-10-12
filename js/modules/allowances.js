@@ -1,0 +1,1 @@
+(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.allowances=d.allowances||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Allowances={all:()=>d.allowances.slice(),add:x=>{const r={id:ZenHR.Utils.id("allow"),employeeId:x.employeeId||"",amount:Number(x.amount)||0,reason:x.reason||"",date:x.date||new Date().toISOString().slice(0,10)};d.allowances.push(r);return r}};})(window);
