@@ -1,13 +1,19 @@
 {
-  "name": "ZenHR | إدارة الموارد البشرية",
+  "name": "ZenHR - Human Resources Management",
   "short_name": "ZenHR",
-  "description": "نظام عربي لإدارة الموارد البشرية",
+  "description": "نظام إدارة الموارد البشرية - ZenHR HR Management System",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f7f6",
-  "theme_color": "#174e3e",
-  "icons": []
+  "orientation": "portrait-primary",
+  "background_color": "#f7f9fb",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "categories": ["business", "productivity"]
 }

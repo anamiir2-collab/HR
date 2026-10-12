@@ -1,1 +1,12 @@
-(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.deductions=d.deductions||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Deductions={all:()=>d.deductions.slice(),add:x=>{const r={id:ZenHR.Utils.id("ded"),employeeId:x.employeeId||"",amount:Number(x.amount)||0,reason:x.reason||"",date:x.date||new Date().toISOString().slice(0,10)};d.deductions.push(r);return r}};})(window);
+/* ============================================================
+   ZenHR — Deductions Module
+   ============================================================ */
+window.ZenDeductions = window.ZenFinanceModule({
+  collection: 'deductions',
+  prefix: 'dd',
+  addLabel: 'إضافة خصم',
+  addLabelEn: 'Add Deduction',
+  editLabel: 'تعديل خصم',
+  editLabelEn: 'Edit Deduction',
+  typePlaceholder: 'مثال: سلفة، خصم تأمين صحي',
+});

@@ -1,50 +1,159 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#174e3e"><meta name="description" content="ZenHR — إدارة الموارد البشرية">
-<title>ZenHR | إدارة الموارد البشرية</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="description" content="ZenHR — نظام إدارة الموارد البشرية | Human Resources Management System">
+<title>ZenHR | إدارة الموارد البشرية</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="app" id="app">
-<aside class="sidebar" id="sidebar">
-  <div class="brand"><div class="brand-mark" aria-hidden="true">Z</div><div><strong>ZenHR</strong><small>People first, always</small></div><button class="icon-btn close-menu" data-action="close-menu" aria-label="إغلاق القائمة">×</button></div>
-  <div class="workspace"><div class="workspace-avatar">Z</div><div><b>شركة زين للتقنية</b><small>مساحة العمل الرئيسية</small></div><span class="chevron">‹</span></div>
-  <p class="nav-caption">القائمة الرئيسية</p>
-  <nav class="nav-list">
-    <button class="nav-item active" data-page="dashboard"><span class="nav-icon">▦</span><span data-i18n="dashboard">لوحة التحكم</span></button>
-    <button class="nav-item" data-page="employees"><span class="nav-icon">♙</span><span data-i18n="employees">الموظفون</span></button>
-    <button class="nav-item" data-page="attendance"><span class="nav-icon">◷</span><span data-i18n="attendance">الحضور والانصراف</span></button>
-    <button class="nav-item" data-page="leaves"><span class="nav-icon">▣</span><span data-i18n="leaves">الإجازات</span><em id="pending-count">2</em></button>
-    <p class="nav-caption">الشؤون المالية</p>
-    <button class="nav-item" data-page="payroll"><span class="nav-icon">ج.م</span><span>المرتبات والأجور</span></button>
-    <button class="nav-item" data-page="rewards"><span class="nav-icon">＋</span><span>الحوافز والمكافآت</span></button>
-    <button class="nav-item" data-page="allowances"><span class="nav-icon">↗</span><span>البدلات</span></button>
-    <button class="nav-item" data-page="penalties"><span class="nav-icon">!</span><span>الجزاءات</span></button>
-    <button class="nav-item" data-page="deductions"><span class="nav-icon">−</span><span>الخصومات والاستقطاعات</span></button>
-    <button class="nav-item" data-page="insurance"><span class="nav-icon">▤</span><span>التأمينات الاجتماعية</span></button>
-    <p class="nav-caption">إدارة الموارد البشرية</p>
-    <button class="nav-item" data-page="departments"><span class="nav-icon">▦</span><span>الأقسام والإدارات</span></button>
-    <button class="nav-item" data-page="shifts"><span class="nav-icon">◷</span><span>الورديات</span></button>
-    <button class="nav-item" data-page="performance"><span class="nav-icon">☆</span><span>تقييم الأداء</span></button>
-    <button class="nav-item" data-page="recruitment"><span class="nav-icon">♙</span><span>التوظيف</span></button>
-    <button class="nav-item" data-page="reports"><span class="nav-icon">▥</span><span data-i18n="reports">التقارير</span></button>
-    <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span data-i18n="settings">الإعدادات</span></button>
-  </nav>
-  <div class="sidebar-bottom"><div class="help-card"><div class="help-icon">✦</div><b>هل تحتاج إلى مساعدة؟</b><p>فريق الدعم جاهز لمساعدتك في أي وقت.</p><button data-action="support">تواصل مع الدعم <span>‹</span></button></div><div class="profile"><div class="avatar">أم</div><div class="profile-info"><b>أمير أنور</b><small>مدير النظام</small></div><span class="profile-dots">•••</span></div></div>
+<!-- ============== Access Gate ============== -->
+<div id="gate-view" class="gate-view" hidden>
+  <div class="gate-card">
+    <div class="gate-logo">
+      <div class="gate-mark">Z</div>
+      <h1>ZenHR</h1>
+      <p data-i18n="gate.subtitle">نظام إدارة الموارد البشرية</p>
+    </div>
+    <form id="gate-form" class="gate-form">
+      <label class="field">
+        <span data-i18n="gate.password">رمز الدخول</span>
+        <input type="password" id="gate-password" autocomplete="current-password" required>
+      </label>
+      <p class="gate-hint" data-i18n="gate.hint">رمز افتراضي: <code>admin</code> — للإشارة فقط، وليس حماية أمنية فعلية.</p>
+      <button type="submit" class="btn primary block" data-i18n="gate.enter">دخول</button>
+      <button type="button" id="gate-lang" class="btn ghost block">English</button>
+    </form>
+    <p class="gate-note" data-i18n="gate.note">بياناتك محفوظة محليًا على هذا الجهاز فقط.</p>
+  </div>
+</div>
+
+<!-- ============== Main App Shell ============== -->
+<div class="app" id="app" hidden>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">Z</div>
+      <div class="brand-text">
+        <strong>ZenHR</strong>
+        <small data-i18n="app.tagline">إدارة الموارد البشرية</small>
+      </div>
+      <button class="icon-btn close-menu" data-action="close-menu" aria-label="إغلاق القائمة">×</button>
+    </div>
+    <div class="workspace">
+      <div class="workspace-avatar" id="company-avatar">ز</div>
+      <div class="workspace-info">
+        <b id="company-name">شركة زين</b>
+        <small data-i18n="app.mainWorkspace">مساحة العمل الرئيسية</small>
+      </div>
+    </div>
+    <nav class="nav-list" id="nav-list"></nav>
+    <div class="sidebar-bottom">
+      <div class="profile">
+        <div class="avatar" id="user-avatar">أ</div>
+        <div class="profile-info">
+          <b id="user-name">أمير أنور</b>
+          <small data-i18n="role.admin">مدير النظام</small>
+        </div>
+        <button class="icon-btn" data-action="logout" title="خروج">⏻</button>
+      </div>
+    </div>
+  </aside>
+  <button class="scrim" id="scrim" data-action="close-menu" aria-label="إغلاق القائمة"></button>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="heading-left">
+        <button class="icon-btn menu-btn" data-action="open-menu" aria-label="القائمة">☰</button>
+        <div>
+          <div class="breadcrumbs">
+            <span data-i18n="nav.home">الرئيسية</span>
+            <span class="sep">/</span>
+            <b id="breadcrumb-title" data-i18n="dashboard">لوحة التحكم</b>
+          </div>
+          <h1 id="page-title" data-i18n="dashboard">لوحة التحكم</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <label class="searchbox">
+          <span>⌕</span>
+          <input id="global-search" placeholder="بحث..." aria-label="بحث" autocomplete="off">
+        </label>
+        <button class="icon-btn" data-action="language" title="تغيير اللغة" id="lang-button">EN</button>
+        <button class="icon-btn notification" data-action="notifications" title="الإشعارات" id="notif-button">♣<i id="notif-dot" hidden></i></button>
+        <div class="top-avatar" id="top-avatar">أ</div>
+      </div>
+    </header>
+    <div class="content">
+      <div class="welcome-row">
+        <div>
+          <p class="eyebrow" id="today-date"></p>
+          <h2 id="welcome-title"></h2>
+          <p class="muted" id="welcome-subtitle"></p>
+        </div>
+        <div class="welcome-actions" id="welcome-actions"></div>
+      </div>
+      <div id="page-content"></div>
+      <footer>
+        <span>© 2026 ZenHR · <span data-i18n="footer.tagline">صُمم بعناية لإدارة فريقك</span></span>
+        <span id="app-version">v1.0.0</span>
+      </footer>
+    </div>
+  </main>
+</div>
+
+<!-- ============== Notifications Drawer ============== -->
+<aside class="drawer" id="notif-drawer" hidden>
+  <div class="drawer-head">
+    <h3 data-i18n="notifications.title">الإشعارات</h3>
+    <button class="icon-btn" data-action="close-notif" aria-label="إغلاق">×</button>
+  </div>
+  <div class="drawer-body" id="notif-list"></div>
 </aside>
-<button class="scrim" id="scrim" data-action="close-menu" aria-label="إغلاق القائمة"></button>
-<main class="main">
-<header class="topbar"><div class="heading-left"><button class="icon-btn menu-btn" data-action="open-menu" aria-label="القائمة">☰</button><div><div class="breadcrumbs">الرئيسية <span>/</span> <b id="breadcrumb-title">لوحة التحكم</b></div><h1 id="page-title">لوحة التحكم</h1></div></div>
-<div class="top-actions"><label class="searchbox"><span>⌕</span><input id="global-search" placeholder="ابحث عن موظف أو قسم..." aria-label="بحث"><kbd>⌘ K</kbd></label><button class="icon-btn" data-action="language" title="تغيير اللغة">文</button><button class="icon-btn" data-action="theme" title="تغيير المظهر" id="theme-button">☾</button><button class="icon-btn notification" data-action="notifications" title="الإشعارات">♧<i></i></button><div class="top-avatar">أم</div></div></header>
-<div class="content">
-<div class="welcome-row"><div><p class="eyebrow" id="today-date"></p><h2 id="welcome-title">صباح الخير، أمير 👋</h2><p class="muted" id="welcome-subtitle">إليك ملخصًا سريعًا لكل ما يحدث في فريقك اليوم.</p></div><div class="welcome-actions"><button class="secondary" data-action="export"><span>⇩</span> تصدير البيانات</button><button class="primary" data-action="add-employee" id="header-add" hidden><span>＋</span> إضافة موظف</button></div></div>
-<div id="page-content"></div>
-<footer>© 2026 ZenHR · صُمم بعناية لإدارة أفضل لفريقك <span>الإصدار التجريبي 1.0</span></footer>
-</div>
-</main>
-</div>
-<div id="modal-root"></div><div id="toast-root" aria-live="polite"></div>
-<script src="js/utils.js"></script><script src="js/ui.js"></script><script src="js/auth.js"></script><script src="js/router.js"></script><script src="js/storage.js"></script><script src="js/modules/employees.js"></script><script src="js/modules/attendance.js"></script><script src="js/modules/leaves.js"></script><script src="js/modules/payroll.js"></script><script src="js/modules/rewards.js"></script><script src="js/modules/allowances.js"></script><script src="js/modules/penalties.js"></script><script src="js/modules/deductions.js"></script><script src="js/modules/insurance.js"></script><script src="js/modules/shifts.js"></script><script src="js/modules/departments.js"></script><script src="js/modules/performance.js"></script><script src="js/modules/recruitment.js"></script><script src="js/modules/reports.js"></script><script src="js/services/export.js"></script><script src="js/services/backup.js"></script><script src="js/employees.js"></script><script src="js/attendance.js"></script><script src="js/leaves.js"></script><script src="js/reports.js"></script><script src="js/app.js"></script>
-<script>if ("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));</script>
-</body></html>
+<button class="scrim" id="notif-scrim" data-action="close-notif" hidden></button>
+
+<!-- ============== Modal & Toast Roots ============== -->
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<!-- ============== Scripts ============== -->
+<script src="js/utils.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/router.js"></script>
+<script src="js/demo-data.js"></script>
+<script src="js/services/export.js"></script>
+<script src="js/services/backup.js"></script>
+<script src="js/modules/dashboard.js"></script>
+<script src="js/modules/employees.js"></script>
+<script src="js/modules/departments.js"></script>
+<script src="js/modules/attendance.js"></script>
+<script src="js/modules/leaves.js"></script>
+<script src="js/modules/shifts.js"></script>
+<script src="js/modules/finance-factory.js"></script>
+<script src="js/modules/payroll.js"></script>
+<script src="js/modules/rewards.js"></script>
+<script src="js/modules/allowances.js"></script>
+<script src="js/modules/penalties.js"></script>
+<script src="js/modules/deductions.js"></script>
+<script src="js/modules/insurance.js"></script>
+<script src="js/modules/loans.js"></script>
+<script src="js/modules/contracts.js"></script>
+<script src="js/modules/performance.js"></script>
+<script src="js/modules/recruitment.js"></script>
+<script src="js/modules/reports.js"></script>
+<script src="js/modules/settings.js"></script>
+<script src="js/app.js"></script>
+<script>
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

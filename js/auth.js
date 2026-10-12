@@ -1,10 +1,47 @@
-(function (global) {
-  // واجهة دخول محلية تجريبية فقط؛ ليست نظام مصادقة آمنًا.
-  const Auth = {
-    getUser() { try { return JSON.parse(localStorage.getItem("zenhr_user")) || { name: "أمير أنور", role: "مدير النظام" }; } catch (_) { return { name: "أمير أنور", role: "مدير النظام" }; } },
-    signIn(name) { const user = { name: String(name || "مستخدم").trim(), role: "مدير النظام" }; localStorage.setItem("zenhr_user", JSON.stringify(user)); return user; },
-    signOut() { localStorage.removeItem("zenhr_user"); }
-  };
-  global.ZenHR = global.ZenHR || {};
-  global.ZenHR.Auth = Auth;
-})(window);
+/* ============================================================
+   ZenHR — Manager/HR Access Gate (local-only, not real security)
+   ============================================================ */
+window.ZenAuth = (function () {
+  'use strict';
+
+  const SESSION_KEY = 'zenhr:session';
+  const SESSION_TTL = 1000 * 60 * 60 * 8; // 8 hours
+
+  function login(password) {
+    const pwd = (window.ZenStore && ZenStore.settings && ZenStore.settings.accessPassword) || 'admin';
+    if (password === pwd) {
+      const session = { ts: Date.now(), user: 'admin', name: 'أمير أنور', nameEn: 'Amir Anwar' };
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+      return true;
+    }
+    return false;
+  }
+
+  function logout() {
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+
+  function isAuthed() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (!s || !s.ts) return false;
+      if (Date.now() - s.ts > SESSION_TTL) {
+        sessionStorage.removeItem(SESSION_KEY);
+        return false;
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function currentUser() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+
+  return { login, logout, isAuthed, currentUser };
+})();

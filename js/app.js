@@ -1,18 +1,370 @@
-(()=>{'use strict';const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];let page='dashboard',query='',english=false;const translations={dashboard:'Dashboard',employees:'Employees',attendance:'Attendance',leaves:'Leaves',reports:'Reports',settings:'Settings'};const pageNames={dashboard:'لوحة التحكم',employees:'الموظفون',attendance:'الحضور والانصراف',leaves:'الإجازات',payroll:'المرتبات والأجور',rewards:'الحوافز والمكافآت',allowances:'البدلات',penalties:'الجزاءات',deductions:'الخصومات والاستقطاعات',insurance:'التأمينات الاجتماعية',departments:'الأقسام والإدارات',shifts:'الورديات',performance:'تقييم الأداء',recruitment:'التوظيف',reports:'التقارير',settings:'الإعدادات'};const money=n=>ZenEmployees.money(n);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));function status(s){const cls=['حاضر','مقبول','نشط'].includes(s)?'success':['متأخر','قيد المراجعة'].includes(s)?'warning':['إجازة','عن بُعد'].includes(s)?'info':'danger';return '<span class="status '+cls+'"><i></i>'+esc(s)+'</span>'}function stat(icon,color,label,value,trend,sub){return '<div class="stat-card"><div class="stat-icon '+color+'">'+icon+'</div><div class="stat-label">'+label+'</div><div class="stat-value">'+value+'</div><div class="stat-foot"><span class="'+(trend.includes('+')?'positive':'')+'">'+trend+'</span><small>'+sub+'</small></div></div>'}function head(title,sub,action=''){return '<div class="panel-head"><div><h3>'+title+'</h3><p>'+sub+'</p></div>'+action+'</div>'}function employeeTable(rows,allowDelete=false){return '<div class="table-scroll"><table><thead><tr><th>الموظف</th><th>القسم</th><th>المسمى الوظيفي</th><th>الراتب الشهري</th><th>الحالة</th>'+(allowDelete?'<th>إجراء</th>':'')+'</tr></thead><tbody>'+rows.map(e=>'<tr><td><div class="employee-cell"><div class="avatar small-avatar">'+esc(e.name.split(' ').slice(0,2).map(x=>x[0]).join(''))+'</div><div><b>'+esc(e.name)+'</b><small>'+esc(e.email)+'</small></div></div></td><td>'+esc(e.department)+'</td><td>'+esc(e.role)+'</td><td>'+money(e.salary)+'</td><td>'+status(e.status)+'</td>'+(allowDelete?'<td><button class="delete-btn" data-delete-employee="'+e.id+'">حذف</button></td>':'')+'</tr>').join('')+'</tbody></table>'+(rows.length?'':'<div class="empty">لا توجد نتائج مطابقة للبحث</div>')+'</div>'}function chart(){return '<div class="mini-chart"><div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><div class="chart-bars">'+[38,56,48,70,61,85,73,91,66,78,53,88].map((v,i)=>'<div class="bar-wrap"><div class="bar '+(i===7?'bar-active':'')+'" style="height:'+v+'%"></div><small>'+['٨ص','٩ص','١٠ص','١١ص','١٢م','١م','٢م','٣م','٤م','٥م','٦م','٧م'][i]+'</small></div>').join('')+'</div></div>'}function leaveRows(rows){return '<div class="leave-list">'+rows.map(l=>'<div class="leave-row"><div class="avatar small-avatar">'+esc(l.name.split(' ').slice(0,2).map(x=>x[0]).join(''))+'</div><div class="leave-person"><b>'+esc(l.name)+'</b><small>'+esc(l.type)+' · '+esc(l.from)+'</small></div>'+status(l.status)+'</div>').join('')+'</div>'}function renderDashboard(){const es=ZenEmployees.all(),at=ZenAttendance.summary(),pending=ZenLeaves.pending(),total=es.reduce((s,e)=>s+e.salary,0);return '<div class="stat-grid">'+stat('♙','purple','إجمالي الموظفين',es.length,'+12.5%','مقارنة بالشهر الماضي')+stat('✓','green','الموظفون النشطون',es.filter(e=>e.status!=='إجازة').length,'+4.2%','من إجمالي الموظفين')+stat('◷','orange','حاضرون اليوم',at.present,'92%','من إجمالي الحضور')+stat('▣','pink','طلبات الإجازة',pending.length,'تحتاج مراجعة','طلبات بانتظار الموافقة')+'</div><div class="dashboard-grid"><section class="panel">'+head('ملخص الحضور اليوم','نظرة سريعة على حالة فريقك','<button class="text-button" data-page="attendance">عرض الكل ‹</button>')+'<div class="attendance-summary"><div><span class="dot green-dot"></span>حاضر <b>'+at.present+'</b></div><div><span class="dot orange-dot"></span>متأخر <b>'+at.late+'</b></div><div><span class="dot pink-dot"></span>إجازة <b>'+at.leave+'</b></div></div>'+chart()+'</section><section class="panel">'+head('طلبات الإجازة الأخيرة','راجع الطلبات المعلقة','<button class="text-button" data-page="leaves">عرض الكل ‹</button>')+leaveRows(ZenLeaves.all().slice(0,4))+'</section></div><section class="panel table-panel">'+head('فريق العمل','قائمة مختصرة بأحدث بيانات الموظفين','<button class="text-button" data-page="employees">كل الموظفين ‹</button>')+employeeTable(ZenEmployees.filtered(query).slice(0,5))+'</section>'}function renderEmployees(){const rows=ZenEmployees.filtered(query);return '<section class="panel table-panel">'+head('دليل الموظفين',ZenEmployees.all().length+' موظفين مسجلين في النظام','<span class="pill">'+rows.length+' نتيجة</span>')+employeeTable(rows,true)+'</section>'}function renderAttendance(){const rows=ZenAttendance.all(),s=ZenAttendance.summary();return '<div class="stat-grid">'+stat('✓','green','حاضر',s.present,'66.7%','من إجمالي الفريق')+stat('◷','orange','متأخر',s.late,'16.7%','يحتاج متابعة')+stat('▣','pink','إجازة',s.leave,'16.7%','إجازات مسجلة')+stat('↗','purple','معدل الحضور',ZenReports.attendanceRate()+'%','+2.4%','عن الأسبوع الماضي')+'</div><section class="panel table-panel">'+head('سجل الحضور اليوم','الاثنين، ١٢ أكتوبر ٢٠٢٦','<button class="secondary" data-action="refresh">تحديث السجل</button>')+'<div class="table-scroll"><table><thead><tr><th>الموظف</th><th>وقت الحضور</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>'+rows.map(a=>'<tr><td><b>'+esc(a.name)+'</b></td><td>'+a.time+'</td><td>'+status(a.state)+'</td><td><button class="small-action" data-action="attendance-detail" data-name="'+esc(a.name)+'">عرض التفاصيل</button></td></tr>').join('')+'</tbody></table></div></section>'}function renderLeaves(){const rows=ZenLeaves.all();return '<section class="panel table-panel">'+head('إدارة الإجازات','طلبات الإجازة والموافقات','<span class="pill">'+ZenLeaves.pending().length+' بانتظار المراجعة</span>')+'<div class="table-scroll"><table><thead><tr><th>الموظف</th><th>نوع الإجازة</th><th>من</th><th>إلى</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>'+rows.map(l=>'<tr><td><b>'+esc(l.name)+'</b></td><td>'+esc(l.type)+'</td><td>'+esc(l.from)+'</td><td>'+esc(l.to)+'</td><td>'+status(l.status)+'</td><td>'+(l.status==='قيد المراجعة'?'<div class="row-actions"><button class="approve" data-leave="'+l.id+'" data-status="مقبول">✓ قبول</button><button class="reject" data-leave="'+l.id+'" data-status="مرفوض">× رفض</button></div>':'—')+'</td></tr>').join('')+'</tbody></table></div></section>'}function renderReports(){const counts=ZenReports.departmentCounts(),es=ZenEmployees.all();return '<div class="stat-grid">'+stat('♙','purple','إجمالي الموظفين',es.length,'مستقر','في النظام')+stat('ج.م','green','إجمالي الرواتب',money(ZenReports.salaryTotal()),'شهريًا','قبل الاستقطاعات')+stat('◷','orange','نسبة الحضور',ZenReports.attendanceRate()+'%','+2.4%','عن الشهر السابق')+stat('▣','pink','طلبات معلقة',ZenLeaves.pending().length,'هذا الشهر','تحتاج مراجعة')+'</div><section class="panel report-panel"><h3>توزيع الموظفين حسب القسم</h3><p class="muted">نظرة على توزيع فريق العمل</p>'+Object.entries(counts).map(([d,n])=>'<div class="progress-row"><div><span>'+esc(d)+'</span><b>'+n+' موظف</b></div><div class="progress"><i style="width:'+Math.max(6,n/es.length*100)+'%"></i></div></div>').join('')+'</section>'}function renderSettings(){return '<section class="panel settings-panel">'+head('إعدادات النظام','خصّص تجربتك في ZenHR')+'<div class="setting-row"><div class="setting-icon">文</div><div><b>لغة الواجهة</b><p>التبديل بين العربية والإنجليزية (واجهة تجريبية)</p></div><button class="secondary" data-action="language">'+(english?'English':'العربية')+'</button></div><div class="setting-row"><div class="setting-icon">☾</div><div><b>المظهر الداكن</b><p>تغيير ألوان الواجهة لتناسب استخدامك</p></div><button class="toggle '+($('#app').classList.contains('dark')?'on':'')+'" data-action="theme"><i></i></button></div><div class="setting-row"><div class="setting-icon">⇩</div><div><b>نسخة احتياطية للبيانات</b><p>احفظ بيانات الموظفين والإجازات في ملف JSON</p></div><button class="secondary" data-action="export">تصدير نسخة</button></div><div class="setting-row"><div class="setting-icon">↺</div><div><b>إعادة البيانات التجريبية</b><p>استعادة البيانات الافتراضية وحذف التغييرات المحلية</p></div><button class="reject" data-action="reset">إعادة التعيين</button></div><p class="privacy-note">البيانات تحفظ محليًا في هذا المتصفح فقط، ولا يوجد اتصال بخادم أو خدمة سحابية. لا تستخدم النسخة التجريبية لحفظ بيانات موظفين حقيقية أو حساسة.</p></section>'}const financeLabels={payroll:'المرتبات والأجور',rewards:'الحوافز والمكافآت',allowances:'البدلات',penalties:'الجزاءات',deductions:'الخصومات والاستقطاعات',insurance:'التأمينات الاجتماعية',departments:'الأقسام والإدارات',shifts:'الورديات',performance:'تقييم الأداء',recruitment:'التوظيف'};
-function financeStore(){try{return JSON.parse(localStorage.getItem('zenhr_finance_v1')||'{}')}catch{return {}}}
-function saveFinance(data){localStorage.setItem('zenhr_finance_v1',JSON.stringify(data))}
-function renderFinance(key){const all=financeStore(),rows=all[key]||[],isPayroll=key==='payroll',isInsurance=key==='insurance',isDept=key==='departments';const total=rows.reduce((n,r)=>n+(Number(r.net??r.amount??r.employeeShare)||0),0);let heads=isPayroll?'<th>الموظف</th><th>الشهر</th><th>الأساسي</th><th>البدلات</th><th>الحوافز</th><th>الخصومات</th><th>التأمين</th><th>صافي المرتب</th>':isInsurance?'<th>الموظف</th><th>رقم التأمين</th><th>حصة الموظف</th><th>حصة الشركة</th><th>التاريخ</th>':isDept?'<th>اسم القسم</th><th>تاريخ الإضافة</th>':key==='shifts'?'<th>اسم الوردية</th><th>من</th><th>إلى</th><th>أيام العمل</th>':key==='performance'?'<th>الموظف</th><th>التقييم</th><th>ملاحظات</th><th>التاريخ</th>':key==='recruitment'?'<th>المسمى الوظيفي</th><th>المرشح</th><th>الحالة</th><th>تاريخ التقديم</th>':'<th>الموظف</th><th>القيمة</th><th>السبب / البيان</th><th>التاريخ</th>';
-const body=rows.map(r=>isPayroll?'<tr><td>'+esc(r.employee)+'</td><td>'+esc(r.month)+'</td><td>'+money(r.basic)+'</td><td>'+money(r.allowances)+'</td><td>'+money(r.rewards)+'</td><td>'+money(r.deductions)+'</td><td>'+money(r.insurance)+'</td><td><b>'+money(r.net)+'</b></td></tr>':isInsurance?'<tr><td>'+esc(r.employee)+'</td><td>'+esc(r.number)+'</td><td>'+money(r.employeeShare)+'</td><td>'+money(r.companyShare)+'</td><td>'+esc(r.date)+'</td></tr>':isDept?'<tr><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.date)+'</td></tr>':key==='shifts'?'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.start)+'</td><td>'+esc(r.end)+'</td><td>'+esc(r.days)+'</td></tr>':key==='performance'?'<tr><td>'+esc(r.employee)+'</td><td>'+esc(r.score)+' / 100</td><td>'+esc(r.reason)+'</td><td>'+esc(r.date)+'</td></tr>':key==='recruitment'?'<tr><td>'+esc(r.role)+'</td><td>'+esc(r.employee)+'</td><td>'+esc(r.status)+'</td><td>'+esc(r.date)+'</td></tr>':'<tr><td>'+esc(r.employee)+'</td><td><b>'+money(r.amount)+'</b></td><td>'+esc(r.reason)+'</td><td>'+esc(r.date)+'</td></tr>').join('');
-return '<div class="stat-grid">'+stat('▤','green','عدد السجلات',rows.length,'مُسجل','في هذا القسم')+stat('ج.م','purple',isPayroll?'إجمالي صافي المرتبات':'إجمالي القيم',money(total),'حسب السجلات','إجمالي محلي')+stat('♙','orange','الموظفون',ZenEmployees.all().length,'بيانات الموظفين','المسجلة بالنظام')+stat('✓','pink','حالة القسم','مستقل','قسم منفصل','يمكن إضافة السجلات')+'</div><section class="panel table-panel">'+head(financeLabels[key],'إدارة مستقلة للسجلات مع حفظ البيانات على هذا الجهاز فقط','<button class="primary" data-action="add-record" data-record-type="'+key+'">＋ إضافة سجل</button>')+'<div class="table-scroll"><table><thead><tr>'+heads+'</tr></thead><tbody>'+body+'</tbody></table>'+(rows.length?'':'<div class="empty">لا توجد سجلات بعد. اضغط «إضافة سجل» للبدء.</div>')+'</div></section>'}
-function openRecordModal(key){const root=$('#modal-root'),employees=ZenEmployees.all().map(e=>'<option>'+esc(e.name)+'</option>').join(''),today=new Date().toISOString().slice(0,10);let fields='';
-const field=(label,name,type='text',placeholder='')=>'<label>'+label+'<input name="'+name+'" type="'+type+'" '+(type==='number'?'min="0" step="0.01" ':'')+'placeholder="'+placeholder+'"></label>';
-if(key==='payroll')fields='<label>الموظف<select name="employee">'+employees+'</select></label>'+field('شهر المرتب','month','month',today.slice(0,7))+field('الراتب الأساسي','basic','number')+field('إجمالي البدلات','allowances','number')+field('الحوافز والمكافآت','rewards','number')+field('الخصومات والجزاءات','deductions','number')+field('حصة التأمينات','insurance','number');
-else if(key==='insurance')fields='<label>الموظف<select name="employee">'+employees+'</select></label>'+field('الرقم التأميني','numberText','text')+field('حصة الموظف','employeeShare','number')+field('حصة الشركة','companyShare','number')+field('التاريخ','date','date',today);
-else if(key==='departments')fields=field('اسم القسم','name')+field('تاريخ الإضافة','date','date',today);
-else if(key==='shifts')fields=field('اسم الوردية','name')+field('بداية الوردية','start','time','09:00')+field('نهاية الوردية','end','time','17:00')+field('أيام العمل','days','text','الأحد إلى الخميس');
-else if(key==='performance')fields='<label>الموظف<select name="employee">'+employees+'</select></label>'+field('التقييم من 100','score','number')+field('التاريخ','date','date',today)+field('ملاحظات','reason');
-else if(key==='recruitment')fields=field('المسمى الوظيفي','role')+field('اسم المرشح','employee')+'<label>الحالة<select name="status"><option>جديد</option><option>قيد المقابلة</option><option>مقبول</option><option>مرفوض</option></select></label>'+field('تاريخ التقديم','date','date',today);
-else fields='<label>الموظف<select name="employee">'+employees+'</select></label>'+field(key==='rewards'?'قيمة الحافز':key==='allowances'?'قيمة البدل':key==='penalties'?'قيمة الجزاء':'قيمة الخصم','amount','number')+field('السبب / البيان','reason')+field('التاريخ','date','date',today);
-root.innerHTML='<div class="modal-backdrop"><form class="modal finance-modal" id="record-form"><div class="modal-head"><div><h3>إضافة سجل — '+financeLabels[key]+'</h3><p>سيتم حفظ السجل محليًا على هذا الجهاز</p></div><button type="button" class="icon-btn" data-action="modal-close">×</button></div>'+fields+'<div class="modal-actions"><button type="button" class="secondary" data-action="modal-close">إلغاء</button><button class="primary" type="submit">حفظ السجل</button></div></form></div>';
-$('#record-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget),all=financeStore(),r={};for(const [k,v] of f.entries())r[k==='numberText'?'number':k]=v;if(key==='payroll'){r.basic=+r.basic||0;r.allowances=+r.allowances||0;r.rewards=+r.rewards||0;r.deductions=+r.deductions||0;r.insurance=+r.insurance||0;r.net=r.basic+r.allowances+r.rewards-r.deductions-r.insurance;}if(['amount','employeeShare','companyShare','score'].some(k=>k in r)){for(const k of ['amount','employeeShare','companyShare','score'])if(k in r)r[k]=+r[k]||0;}if(!r.date)r.date=today;if(!all[key])all[key]=[];all[key].push(r);saveFinance(all);root.innerHTML='';render();toast('تم حفظ السجل بنجاح');});root.querySelector('.modal-backdrop').addEventListener('click',e=>{if(e.target===e.currentTarget)root.innerHTML=''});}
-function render(){const names=pageNames;$('#page-title').textContent=names[page];$('#breadcrumb-title').textContent=names[page];$('#welcome-title').textContent=page==='dashboard'?'صباح الخير، أمير 👋':names[page];$('#welcome-subtitle').textContent=page==='dashboard'?'إليك ملخصًا سريعًا لكل ما يحدث في فريقك اليوم.':'تابع وأدر بيانات الموارد البشرية من مكان واحد.';$('#header-add').hidden=page!=='employees';$('#page-content').innerHTML=({dashboard:renderDashboard,employees:renderEmployees,attendance:renderAttendance,leaves:renderLeaves,reports:renderReports,settings:renderSettings,payroll:()=>renderFinance('payroll'),rewards:()=>renderFinance('rewards'),allowances:()=>renderFinance('allowances'),penalties:()=>renderFinance('penalties'),deductions:()=>renderFinance('deductions'),insurance:()=>renderFinance('insurance'),departments:()=>renderFinance('departments'),shifts:()=>renderFinance('shifts'),performance:()=>renderFinance('performance'),recruitment:()=>renderFinance('recruitment')})[page]();$$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pending-count').textContent=ZenLeaves.pending().length;$$('[data-page]').forEach(b=>{if(b.tagName==='BUTTON')b.addEventListener('click',()=>go(b.dataset.page))})}function go(next){if(!pageNames[next])return;page=next;$('#global-search').value=query;render();if(innerWidth<821)closeMenu()}function toast(msg){const root=$('#toast-root');root.innerHTML='<div class="toast">✓ '+esc(msg)+'</div>';setTimeout(()=>{root.innerHTML=''},2800)}function closeMenu(){$('#sidebar').classList.remove('open');$('#scrim').classList.remove('show')}function openMenu(){$('#sidebar').classList.add('open');$('#scrim').classList.add('show')}function exportData(){const blob=new Blob([JSON.stringify(ZenStore.get(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='zenhr-backup.json';a.click();URL.revokeObjectURL(url);toast('تم تجهيز ملف النسخة الاحتياطية')}function modal(){const root=$('#modal-root');root.innerHTML='<div class="modal-backdrop" data-action="modal-close"><form class="modal" id="employee-form"><div class="modal-head"><div><h3>إضافة موظف جديد</h3><p>أدخل بيانات الموظف الأساسية</p></div><button type="button" class="icon-btn" data-action="modal-close">×</button></div><label>اسم الموظف<input name="name" required placeholder="الاسم بالكامل" autofocus></label><label>المسمى الوظيفي<input name="role" required placeholder="مثال: أخصائي موارد بشرية"></label><label>القسم<select name="department">'+['الموارد البشرية','تقنية المعلومات','التصميم','المالية','التسويق','المبيعات'].map(d=>'<option>'+d+'</option>').join('')+'</select></label><label>الراتب الشهري<input name="salary" type="number" min="0" placeholder="10000"></label><label>البريد الإلكتروني<input name="email" type="email" placeholder="employee@company.com"></label><div class="modal-actions"><button type="button" class="secondary" data-action="modal-close">إلغاء</button><button class="primary" type="submit">＋ إضافة الموظف</button></div></form></div>';$('#employee-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);ZenEmployees.add({name:f.get('name'),role:f.get('role'),department:f.get('department'),salary:f.get('salary'),email:f.get('email')});root.innerHTML='';render();toast('تمت إضافة الموظف بنجاح')});root.querySelector('.modal-backdrop').addEventListener('click',e=>{if(e.target===e.currentTarget)root.innerHTML=''})}function toggleTheme(){const dark=$('#app').classList.toggle('dark');localStorage.setItem('zenhr_dark',dark?'1':'0');$('#theme-button').textContent=dark?'☀':'☾';if(page==='settings')render()}function toggleLanguage(){english=!english;document.documentElement.lang=english?'en':'ar';document.documentElement.dir=english?'ltr':'rtl';$$('[data-i18n]').forEach(el=>{el.textContent=english?(translations[el.dataset.i18n]||el.textContent):({dashboard:'لوحة التحكم',employees:'الموظفون',attendance:'الحضور والانصراف',leaves:'الإجازات',reports:'التقارير',settings:'الإعدادات'}[el.dataset.i18n])});toast(english?'Language preference changed. Some demo labels remain Arabic.':'تم تغيير إعداد اللغة؛ بعض النصوص التجريبية ما زالت بالعربية.');render()}document.addEventListener('click',e=>{const b=e.target.closest('[data-action],[data-page],[data-leave],[data-delete-employee]');if(!b)return;if(b.dataset.page){go(b.dataset.page);return}if(b.dataset.leave){ZenLeaves.decide(b.dataset.leave,b.dataset.status);render();toast(b.dataset.status==='مقبول'?'تم قبول طلب الإجازة':'تم رفض طلب الإجازة');return}if(b.dataset.deleteEmployee){if(confirm('هل تريد حذف هذا الموظف؟')){ZenEmployees.remove(b.dataset.deleteEmployee);render();toast('تم حذف الموظف')}return}switch(b.dataset.action){case'open-menu':openMenu();break;case'close-menu':closeMenu();break;case'add-employee':modal();break;case'add-record':openRecordModal(b.dataset.recordType);break;case'export':exportData();break;case'theme':toggleTheme();break;case'language':toggleLanguage();break;case'notifications':toast('ليس لديك إشعارات جديدة');break;case'support':toast('يمكنك إضافة وسيلة تواصل الدعم لاحقًا');break;case'refresh':render();toast('تم تحديث سجل الحضور');break;case'attendance-detail':toast('سجل تجريبي للموظف: '+b.dataset.name);break;case'reset':if(confirm('سيتم استعادة البيانات التجريبية وحذف تغييراتك. هل تريد المتابعة؟')){ZenStore.reset();render();toast('تمت استعادة البيانات التجريبية')}break;case'modal-close':$('#modal-root').innerHTML='';break}});$('#global-search').addEventListener('input',e=>{query=e.target.value;if(['employees','dashboard'].includes(page))render()});document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#global-search').focus()}if(e.key==='Escape'){closeMenu();$('#modal-root').innerHTML=''}});const d=new Date();$('#today-date').textContent=new Intl.DateTimeFormat('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(d);if(localStorage.getItem('zenhr_dark')==='1')$('#app').classList.add('dark');render()})();
+/* ============================================================
+   ZenHR — Main Application Bootstrap
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const U = window.ZenUtils;
+  const UI = window.ZenUI;
+  const S = window.ZenStore;
+  const Auth = window.ZenAuth;
+  const Router = window.ZenRouter;
+  const I18n = window.ZenI18n;
+
+  const NAV_GROUPS = [
+    {
+      caption: { ar: 'الرئيسية', en: 'Main' },
+      items: [
+        { page: 'dashboard', icon: '▦', labelKey: 'dashboard' },
+        { page: 'employees', icon: '♙', labelKey: 'employees' },
+        { page: 'attendance', icon: '◷', labelKey: 'attendance' },
+        { page: 'leaves', icon: '▣', labelKey: 'leaves', badge: () => S.findBy('leaves', (l) => l.status === 'pending').length },
+      ]
+    },
+    {
+      caption: { ar: 'الشؤون المالية', en: 'Finance' },
+      items: [
+        { page: 'payroll', icon: 'ج.م', labelKey: 'payroll' },
+        { page: 'rewards', icon: '＋', labelKey: 'rewards' },
+        { page: 'allowances', icon: '↗', labelKey: 'allowances' },
+        { page: 'penalties', icon: '!', labelKey: 'penalties' },
+        { page: 'deductions', icon: '−', labelKey: 'deductions' },
+        { page: 'insurance', icon: '▤', labelKey: 'insurance' },
+        { page: 'loans', icon: '$', labelKey: 'loans' },
+      ]
+    },
+    {
+      caption: { ar: 'الموارد البشرية', en: 'Human Resources' },
+      items: [
+        { page: 'departments', icon: '▦', labelKey: 'departments' },
+        { page: 'shifts', icon: '◷', labelKey: 'shifts' },
+        { page: 'performance', icon: '☆', labelKey: 'performance' },
+        { page: 'recruitment', icon: '♙', labelKey: 'recruitment' },
+        { page: 'contracts', icon: '📄', labelKey: 'contracts' },
+      ]
+    },
+    {
+      caption: { ar: 'النظام', en: 'System' },
+      items: [
+        { page: 'reports', icon: '▥', labelKey: 'reports' },
+        { page: 'settings', icon: '⚙', labelKey: 'settings' },
+      ]
+    }
+  ];
+
+  // Module registry: page name -> render function
+  const MODULES = {
+    dashboard: () => ZenDashboard.render(),
+    employees: () => ZenEmployees.render(),
+    attendance: () => ZenAttendance.render(),
+    leaves: (p) => ZenLeaves.render(p),
+    payroll: () => ZenPayroll.render(),
+    rewards: () => ZenRewards.render(),
+    allowances: () => ZenAllowances.render(),
+    penalties: () => ZenPenalties.render(),
+    deductions: () => ZenDeductions.render(),
+    insurance: () => ZenInsurance.render(),
+    loans: () => ZenLoans.render(),
+    departments: () => ZenDepartments.render(),
+    shifts: () => ZenShifts.render(),
+    performance: () => ZenPerformance.render(),
+    recruitment: () => ZenRecruitment.render(),
+    contracts: (p) => ZenContracts.render(p),
+    reports: () => ZenReports.render(),
+    settings: () => ZenSettings.render(),
+  };
+
+  function buildNav() {
+    const navList = document.getElementById('nav-list');
+    if (!navList) return;
+    navList.innerHTML = NAV_GROUPS.map((group) => {
+      const caption = group.caption[I18n.lang] || group.caption.ar;
+      return `<p class="nav-caption">${U.esc(caption)}</p>` +
+        group.items.map((item) => {
+          const label = I18n.t(item.labelKey);
+          const badge = item.badge ? item.badge() : 0;
+          return `<button class="nav-item" data-page="${item.page}">
+            <span class="nav-icon">${item.icon}</span>
+            <span>${U.esc(label)}</span>
+            ${badge > 0 ? `<em>${badge}</em>` : ''}
+          </button>`;
+        }).join('');
+    }).join('');
+
+    navList.querySelectorAll('.nav-item').forEach((btn) => {
+      btn.onclick = () => Router.go(btn.dataset.page);
+    });
+  }
+
+  function showApp() {
+    document.getElementById('gate-view').hidden = true;
+    document.getElementById('app').hidden = false;
+    buildNav();
+    updateUserInfo();
+    // Auto-initialize demo data on first run if not already initialized.
+    // Safe: checks demoInitialized flag, only runs once, never overwrites user data.
+    if (!S.settings.demoInitialized) {
+      try {
+        ZenDemoData.initialize(false);
+      } catch (e) {
+        console.error('Demo data initialization failed:', e);
+      }
+    }
+    // Register modules
+    Object.entries(MODULES).forEach(([name, fn]) => Router.register(name, fn));
+    Router.start();
+    updateNotifications();
+    setInterval(updateNotifications, 60000);
+  }
+
+  function showGate() {
+    document.getElementById('gate-view').hidden = false;
+    document.getElementById('app').hidden = true;
+    const form = document.getElementById('gate-form');
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const pwd = document.getElementById('gate-password').value;
+        if (Auth.login(pwd)) {
+          showApp();
+        } else {
+          UI.toast(I18n.lang === 'ar' ? 'رمز الدخول غير صحيح' : 'Wrong access code', 'error');
+        }
+      };
+    }
+    const langBtn = document.getElementById('gate-lang');
+    if (langBtn) langBtn.onclick = () => { I18n.toggle(); updateGateLang(); };
+    updateGateLang();
+  }
+
+  function updateGateLang() {
+    const langBtn = document.getElementById('gate-lang');
+    if (langBtn) langBtn.textContent = I18n.lang === 'ar' ? 'English' : 'العربية';
+    I18n.apply(document.getElementById('gate-view'));
+  }
+
+  function updateUserInfo() {
+    const user = Auth.currentUser();
+    if (user) {
+      const nameEl = document.getElementById('user-name');
+      const avatarEl = document.getElementById('user-avatar');
+      const topAvatarEl = document.getElementById('top-avatar');
+      const name = I18n.lang === 'ar' ? (user.name || 'مدير النظام') : (user.nameEn || 'Admin');
+      if (nameEl) nameEl.textContent = name;
+      const ini = U.initials(name);
+      if (avatarEl) avatarEl.textContent = ini;
+      if (topAvatarEl) topAvatarEl.textContent = ini;
+    }
+    // Update company name
+    const cn = document.getElementById('company-name');
+    if (cn) cn.textContent = I18n.lang === 'ar' ? (S.settings.companyName || 'شركة زين') : (S.settings.companyNameEn || 'ZenTech');
+    const ca = document.getElementById('company-avatar');
+    if (ca) ca.textContent = U.initials(I18n.lang === 'ar' ? S.settings.companyName : S.settings.companyNameEn);
+  }
+
+  function updateNotifications() {
+    const today = new Date();
+    const notifList = document.getElementById('notif-list');
+    const dot = document.getElementById('notif-dot');
+    if (!notifList) return;
+
+    const notifs = [];
+    // Pending leaves
+    const pendingLeaves = S.findBy('leaves', (l) => l.status === 'pending');
+    if (pendingLeaves.length) {
+      notifs.push({
+        icon: '▣', color: 'warning',
+        title: I18n.lang === 'ar' ? 'طلبات إجازة معلقة' : 'Pending Leave Requests',
+        body: I18n.lang === 'ar' ? `${pendingLeaves.length} طلب بانتظار المراجعة` : `${pendingLeaves.length} pending review`,
+        action: () => Router.go('leaves'),
+      });
+    }
+    // Contract expirations (next 30 days)
+    const upcoming = S.findBy('contracts', (c) => {
+      if (c.status !== 'active' || !c.endDate) return false;
+      const days = (new Date(c.endDate) - today) / 86400000;
+      return days >= 0 && days <= 30;
+    });
+    if (upcoming.length) {
+      notifs.push({
+        icon: '📄', color: 'info',
+        title: I18n.lang === 'ar' ? 'عقود تنتهي قريباً' : 'Contracts Expiring',
+        body: I18n.lang === 'ar' ? `${upcoming.length} عقد خلال 30 يوم` : `${upcoming.length} contracts within 30 days`,
+        action: () => Router.go('contracts'),
+      });
+    }
+    // Pending payroll drafts
+    const draftPayroll = S.findBy('payroll', (p) => p.status === 'draft');
+    if (draftPayroll.length) {
+      notifs.push({
+        icon: 'ج.م', color: 'success',
+        title: I18n.lang === 'ar' ? 'مرتبات مسودة' : 'Draft Payroll',
+        body: I18n.lang === 'ar' ? `${draftPayroll.length} سجل بانتظار المعالجة` : `${draftPayroll.length} records awaiting processing`,
+        action: () => Router.go('payroll'),
+      });
+    }
+    // Open vacancies with candidates
+    const openVacancies = S.findBy('vacancies', (v) => v.status === 'open');
+    if (openVacancies.length) {
+      notifs.push({
+        icon: '♙', color: 'brand',
+        title: I18n.lang === 'ar' ? 'وظائف شاغرة' : 'Open Vacancies',
+        body: I18n.lang === 'ar' ? `${openVacancies.length} وظيفة مفتوحة` : `${openVacancies.length} open vacancies`,
+        action: () => Router.go('recruitment'),
+      });
+    }
+    // Active loans with upcoming installments
+    const upcomingLoans = S.findBy('loans', (l) => {
+      if (l.status !== 'active') return false;
+      const days = (new Date(l.nextInstallmentDate) - today) / 86400000;
+      return days >= 0 && days <= 7;
+    });
+    if (upcomingLoans.length) {
+      notifs.push({
+        icon: '$', color: 'warning',
+        title: I18n.lang === 'ar' ? 'أقساط قادمة' : 'Upcoming Installments',
+        body: I18n.lang === 'ar' ? `${upcomingLoans.length} قسط خلال 7 أيام` : `${upcomingLoans.length} installments within 7 days`,
+        action: () => Router.go('loans'),
+      });
+    }
+
+    if (dot) dot.hidden = notifs.length === 0;
+    notifList.innerHTML = notifs.length === 0 ?
+      `<div class="empty-state" style="padding:30px 10px"><div class="empty-icon">✓</div><h3>${I18n.t('notifications.empty')}</h3></div>` :
+      notifs.map((n) => `
+        <div class="notif-item" data-notif="${notifs.indexOf(n)}">
+          <div class="notif-icon" style="background:var(--${n.color}-100);color:var(--${n.color}-700)">${n.icon}</div>
+          <div class="notif-body"><b>${U.esc(n.title)}</b><p>${U.esc(n.body)}</p></div>
+        </div>
+      `).join('');
+    notifList.querySelectorAll('[data-notif]').forEach((el) => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.notif, 10);
+        notifs[idx].action();
+        closeNotifDrawer();
+      };
+    });
+  }
+
+  function openNotifDrawer() {
+    document.getElementById('notif-drawer').hidden = false;
+    document.getElementById('notif-scrim').hidden = false;
+    document.getElementById('notif-scrim').classList.add('visible');
+  }
+  function closeNotifDrawer() {
+    document.getElementById('notif-drawer').hidden = true;
+    document.getElementById('notif-scrim').hidden = true;
+    document.getElementById('notif-scrim').classList.remove('visible');
+  }
+
+  function openMenu() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('scrim').classList.add('visible');
+  }
+  function closeMenu() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('scrim').classList.remove('visible');
+  }
+
+  // Wire up global actions
+  function wireGlobalActions() {
+    document.querySelectorAll('[data-action]').forEach((el) => {
+      if (el.__wired) return;
+      el.__wired = true;
+      el.addEventListener('click', () => {
+        const action = el.dataset.action;
+        if (action === 'open-menu') openMenu();
+        else if (action === 'close-menu') closeMenu();
+        else if (action === 'close-notif') closeNotifDrawer();
+        else if (action === 'language') I18n.toggle();
+        else if (action === 'notifications') openNotifDrawer();
+        else if (action === 'logout') logout();
+        else if (action === 'support') UI.toast(I18n.lang === 'ar' ? 'للدعم: support@zenhr.demo' : 'For support: support@zenhr.demo', 'info');
+      });
+    });
+
+    // Global search
+    const search = document.getElementById('global-search');
+    if (search && !search.__wired) {
+      search.__wired = true;
+      search.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const q = e.target.value.trim();
+          if (!q) return;
+          // Try to find employee by name or ID
+          const matches = S.findBy('employees', (emp) =>
+            emp.name.toLowerCase().includes(q.toLowerCase()) ||
+            emp.id.toLowerCase().includes(q.toLowerCase())
+          );
+          if (matches.length > 0) {
+            Router.go('employees');
+            setTimeout(() => {
+              ZenEmployees.state.search = q;
+              const s = document.getElementById('emp-search');
+              if (s) { s.value = q; ZenEmployees.render(); }
+            }, 100);
+          } else {
+            UI.toast(I18n.lang === 'ar' ? 'لا توجد نتائج' : 'No results', 'info');
+          }
+        }
+      });
+    }
+  }
+
+  function logout() {
+    UI.confirm({
+      title: I18n.lang === 'ar' ? 'تسجيل الخروج' : 'Logout',
+      message: I18n.lang === 'ar' ? 'هل تريد الخروج؟ ستبقى البيانات محفوظة.' : 'Log out? Your data will remain saved.',
+      kind: 'warning',
+      confirmLabel: I18n.lang === 'ar' ? 'خروج' : 'Logout',
+      onConfirm: () => {
+        Auth.logout();
+        location.reload();
+      }
+    });
+  }
+
+  function onLangChange() {
+    buildNav();
+    updateUserInfo();
+    updateGateLang();
+    // Re-render current page
+    if (Auth.isAuthed()) {
+      Router.render();
+    }
+    // Update language button label
+    const langBtn = document.getElementById('lang-button');
+    if (langBtn) langBtn.textContent = I18n.lang === 'ar' ? 'EN' : 'ع';
+    I18n.apply();
+  }
+
+  function init() {
+    // Apply language
+    I18n.apply();
+    // Wire global actions
+    wireGlobalActions();
+    // Show gate or app
+    if (Auth.isAuthed()) {
+      showApp();
+    } else {
+      showGate();
+    }
+    // Set initial language button label
+    const langBtn = document.getElementById('lang-button');
+    if (langBtn) langBtn.textContent = I18n.lang === 'ar' ? 'EN' : 'ع';
+  }
+
+  // Public API
+  window.ZenApp = {
+    init,
+    onLangChange,
+    buildNav,
+  };
+
+  // Boot when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

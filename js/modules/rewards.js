@@ -1,1 +1,12 @@
-(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.rewards=d.rewards||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Rewards={all:()=>d.rewards.slice(),add:x=>{const r={id:ZenHR.Utils.id("reward"),employeeId:x.employeeId||"",amount:Number(x.amount)||0,reason:x.reason||"",date:x.date||new Date().toISOString().slice(0,10)};d.rewards.push(r);return r}};})(window);
+/* ============================================================
+   ZenHR — Rewards & Bonuses Module
+   ============================================================ */
+window.ZenRewards = window.ZenFinanceModule({
+  collection: 'rewards',
+  prefix: 'rw',
+  addLabel: 'إضافة مكافأة',
+  addLabelEn: 'Add Reward',
+  editLabel: 'تعديل مكافأة',
+  editLabelEn: 'Edit Reward',
+  typePlaceholder: 'مثال: مكافأة أداء، مكافأة إنتاج',
+});

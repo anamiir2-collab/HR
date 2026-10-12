@@ -1,1 +1,12 @@
-(function(g){const d=g.ZenHRData||(g.ZenHRData={});d.penalties=d.penalties||[];g.ZenHR=g.ZenHR||{};g.ZenHR.Penalties={all:()=>d.penalties.slice(),add:x=>{const r={id:ZenHR.Utils.id("pen"),employeeId:x.employeeId||"",amount:Number(x.amount)||0,reason:x.reason||"",date:x.date||new Date().toISOString().slice(0,10)};d.penalties.push(r);return r}};})(window);
+/* ============================================================
+   ZenHR — Penalties Module
+   ============================================================ */
+window.ZenPenalties = window.ZenFinanceModule({
+  collection: 'penalties',
+  prefix: 'pn',
+  addLabel: 'إضافة جزاء',
+  addLabelEn: 'Add Penalty',
+  editLabel: 'تعديل جزاء',
+  editLabelEn: 'Edit Penalty',
+  typePlaceholder: 'مثال: خصم تأخير، إنذار',
+});
