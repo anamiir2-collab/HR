@@ -1,0 +1,1 @@
+window.ZenReports={departmentCounts(){const out={};ZenEmployees.all().forEach(e=>out[e.department]=(out[e.department]||0)+1);return out},salaryTotal(){return ZenEmployees.all().reduce((sum,e)=>sum+Number(e.salary||0),0)},attendanceRate(){const s=ZenAttendance.summary();return Math.round((s.present+s.late)/Math.max(s.total,1)*100)}};

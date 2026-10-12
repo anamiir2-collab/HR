@@ -1,0 +1,1 @@
+window.ZenLeaves={all(){return ZenStore.get().leaves},pending(){return this.all().filter(x=>x.status==='قيد المراجعة')},decide(id,status){ZenStore.setLeaves(this.all().map(x=>x.id===Number(id)?{...x,status}:x))},add(input){ZenStore.setLeaves([{id:Date.now(),...input,status:'قيد المراجعة'},...this.all()])}};
