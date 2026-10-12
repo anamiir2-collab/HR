@@ -7,15 +7,18 @@ window.ZenAuth = (function () {
   const SESSION_KEY = 'zenhr:session';
   const SESSION_TTL = 1000 * 60 * 60 * 8; // 8 hours
 
-  // Direct entry mode: no password or access code is required.
-  function login() {
-    const session = { ts: Date.now(), user: 'admin', name: 'أمير أنور', nameEn: 'Amir Anwar' };
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
-    return true;
+  function login(password) {
+    const pwd = (window.ZenStore && ZenStore.settings && ZenStore.settings.accessPassword) || 'admin';
+    if (password === pwd) {
+      const session = { ts: Date.now(), user: 'admin', name: 'أمير أنور', nameEn: 'Amir Anwar' };
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+      return true;
+    }
+    return false;
   }
 
   function logout() {
-    try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+    sessionStorage.removeItem(SESSION_KEY);
   }
 
   function isAuthed() {
