@@ -163,11 +163,12 @@ window.ZenShiftPlanner = (function () {
       const date = new Date(first.getFullYear(), first.getMonth(), d);
       const key = dateKey(date);
       const base = expectedFor(plan, date, selectedEmployee);
-      const order = window.ZenRestDays && ZenRestDays.isRestDate(selectedEmployee, key) ? null : orders.find(o => o.employeeId === selectedEmployee && o.date === key);
+      const monthlyRest = !!(window.ZenRestDays && ZenRestDays.isRestDate(selectedEmployee, key));
+      const order = monthlyRest ? null : orders.find(o => o.employeeId === selectedEmployee && o.date === key);
       const actualShift = order ? shiftById(order.shiftId) : base.shift;
       const isOff = order ? false : base.type === 'off';
       const isFriday = date.getDay() === 5;
-      const cls = order ? 'assigned' : (isOff ? 'off' : (isFriday ? 'friday' : 'work'));
+      const cls = order ? 'assigned' : (monthlyRest ? 'off monthly-rest' : (isOff ? 'off' : (isFriday ? 'friday' : 'work')));
       const title = order ? text('أمر تكليف','Assignment order') : (isOff ? base.label : base.label);
       const shiftName = order ? shiftLabel(actualShift, lang) : (isOff ? base.label : (actualShift ? shiftLabel(actualShift, lang) : base.label));
       cells += '<button type="button" class="sp-day ' + cls + '" data-sp-date="' + key + '" title="' + U.esc(title) + '"><b>' + d + '</b><span>' + U.esc(shiftName) + '</span>' + (order ? '<small>' + text('تكليف','Assigned') + '</small>' : (isFriday && !isOff ? '<small>' + text('جمعة','Friday') + '</small>' : '')) + '</button>';
