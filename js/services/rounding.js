@@ -174,9 +174,9 @@ window.ZenRounding = (function () {
 
     // If scope is 'total' or 'both', round the gross and deductions totals
     if (cfg.enabled && (scope === 'total' || scope === 'both')) {
-      // Round gross total down
+      // Round gross total to the nearest increment
       const roundedGrossTotal = roundDown(originalGross, cfg.increment);
-      // Round deductions total per policy
+      // Round deductions total using the configured policy
       let roundedDeductionsTotal = originalDeductions;
       if (cfg.deductionsPolicy === 'down') roundedDeductionsTotal = roundDown(originalDeductions, cfg.increment);
       else if (cfg.deductionsPolicy === 'up') roundedDeductionsTotal = roundUp(originalDeductions, cfg.increment);
