@@ -1,0 +1,32 @@
+/* AGRIMASTERS HR — Central policy settings */
+window.ZenCentralSettings = (function () {
+  'use strict';
+  const S=window.ZenStore, UI=window.ZenUI, U=window.ZenUtils;
+  function render() {
+    const root=document.getElementById('page-content'); if(!root)return;
+    const ar=ZenI18n.lang==='ar', t=(a,e)=>ar?a:e;
+    const cycle=Object.assign({startDay:26,endDay:25},S.settings.payrollCycle||{});
+    const rules=Object.assign({dayCount:3,nightCount:3,offCount:3,weeklyRestDays:[5],requireAssignmentOnRestDay:true},S.settings.shiftRules||{});
+    const days=ar?['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const periods=S.getCollection('financePeriods').slice().sort((a,b)=>String(a.startDate).localeCompare(String(b.startDate)));
+    root.innerHTML =
+      '<section class="card mb-16"><div class="card-head"><div><h3>'+t('دورة الرواتب','Payroll cycle')+'</h3><p class="muted">'+t('تُضبط الأيام تلقائيًا للأشهر القصيرة.','Short months are handled automatically.')+'</p></div></div><form id="cc-cycle" class="form-grid">'+
+      '<label class="field"><span>'+t('يوم البداية','Start day')+'</span><input type="number" name="startDay" min="1" max="31" value="'+cycle.startDay+'" required></label>'+
+      '<label class="field"><span>'+t('يوم النهاية','End day')+'</span><input type="number" name="endDay" min="1" max="31" value="'+cycle.endDay+'" required></label><div class="full"><button class="btn primary">'+t('حفظ دورة الرواتب','Save payroll cycle')+'</button></div></form></section>'+
+      '<section class="card mb-16"><div class="card-head"><div><h3>'+t('قواعد الورديات','Shift rules')+'</h3><p class="muted">'+t('القواعد الافتراضية؛ يمكن تخصيص الدورة لكل موظف في صفحة الورديات.','Defaults; individual plans remain editable on the Shifts page.')+'</p></div></div><form id="cc-shifts" class="form-grid">'+
+      '<label class="field"><span>'+t('أيام النهار','Day days')+'</span><input name="dayCount" type="number" min="1" max="31" value="'+rules.dayCount+'" required></label>'+
+      '<label class="field"><span>'+t('أيام الليل','Night days')+'</span><input name="nightCount" type="number" min="1" max="31" value="'+rules.nightCount+'" required></label>'+
+      '<label class="field"><span>'+t('أيام الإجازة','Off days')+'</span><input name="offCount" type="number" min="1" max="31" value="'+rules.offCount+'" required></label>'+
+      '<div class="field full"><span>'+t('أيام الراحة الأسبوعية','Weekly rest days')+'</span><div class="settings-days">'+days.map((d,i)=>'<label><input type="checkbox" name="rest'+i+'" '+(rules.weeklyRestDays.includes(i)?'checked':'')+'> '+U.esc(d)+'</label>').join('')+'</div></div>'+
+      '<label class="field full"><span><input type="checkbox" name="requireOrder" '+(rules.requireAssignmentOnRestDay?'checked':'')+'> '+t('العمل في يوم الراحة أو العطلة يتطلب أمر تكليف','Working on a rest day/holiday requires an assignment order')+'</span></label><div class="full"><button class="btn primary">'+t('حفظ قواعد الورديات','Save shift rules')+'</button></div></form></section>'+
+      '<section class="card"><div class="card-head"><div><h3>'+t('الفترات الزمنية','Financial periods')+'</h3><p class="muted">'+t('تُستخدم للمكافآت والبدلات، ويُحتسب البند فقط عند تداخل الفترة مع دورة الرواتب.','Used by rewards and allowances; a record counts only when its period overlaps payroll cycle.')+'</p></div></div><form id="cc-period" class="form-grid">'+
+      '<label class="field"><span>'+t('اسم الفترة','Period name')+'</span><input name="name" maxlength="80" required></label><label class="field"><span>'+t('تاريخ البداية','Start date')+'</span><input type="date" name="startDate" required></label><label class="field"><span>'+t('تاريخ النهاية','End date')+'</span><input type="date" name="endDate" required></label><div class="full"><button class="btn primary">'+t('إضافة فترة','Add period')+'</button></div></form>'+
+      '<div class="table-scroll mt-16"><table class="data"><thead><tr><th>'+t('الفترة','Period')+'</th><th>'+t('البداية','Start')+'</th><th>'+t('النهاية','End')+'</th><th>'+t('إجراء','Action')+'</th></tr></thead><tbody>'+
+      (periods.map(p=>'<tr><td>'+U.esc(p.name)+'</td><td>'+U.esc(p.startDate)+'</td><td>'+U.esc(p.endDate)+'</td><td><button type="button" class="btn sm danger" data-period-delete="'+U.esc(p.id)+'">'+t('حذف','Delete')+'</button></td></tr>').join('')||'<tr><td colspan="4">'+t('لا توجد فترات بعد','No periods yet')+'</td></tr>')+'</tbody></table></div></section>';
+    root.querySelector('#cc-cycle').onsubmit=e=>{e.preventDefault();const f=e.currentTarget,a=Number(f.elements.startDay.value),b=Number(f.elements.endDay.value);if(a<1||a>31||b<1||b>31)return UI.toast(t('الأيام يجب أن تكون بين 1 و31','Days must be between 1 and 31'),'warning');S.settings.payrollCycle={startDay:a,endDay:b};S.saveSettings();UI.toast(t('تم الحفظ','Saved'),'success');};
+    root.querySelector('#cc-shifts').onsubmit=e=>{e.preventDefault();const f=e.currentTarget,rest=days.map((_,i)=>i).filter(i=>f.elements['rest'+i].checked);S.settings.shiftRules={dayCount:Math.max(1,Number(f.elements.dayCount.value)||3),nightCount:Math.max(1,Number(f.elements.nightCount.value)||3),offCount:Math.max(1,Number(f.elements.offCount.value)||3),weeklyRestDays:rest,requireAssignmentOnRestDay:f.elements.requireOrder.checked};S.settings.workingDays=days.map((_,i)=>i).filter(i=>!rest.includes(i));S.saveSettings();UI.toast(t('تم الحفظ','Saved'),'success');};
+    root.querySelector('#cc-period').onsubmit=e=>{e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const d=Object.fromEntries(new FormData(f).entries());if(d.endDate<d.startDate)return UI.toast(t('تاريخ النهاية قبل البداية','End date is before start date'),'warning');S.insert('financePeriods',{id:'fp-'+Date.now().toString(36),...d,createdAt:new Date().toISOString()});render();UI.toast(t('تمت إضافة الفترة','Period added'),'success');};
+    root.querySelectorAll('[data-period-delete]').forEach(b=>b.onclick=()=>UI.confirm({title:t('حذف الفترة','Delete period'),message:t('حذف هذه الفترة؟','Delete this period?'),kind:'danger',confirmLabel:t('حذف','Delete'),onConfirm:()=>{S.remove('financePeriods',b.dataset.periodDelete);render();}}));
+  }
+  return {render};
+})();
