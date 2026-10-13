@@ -16,6 +16,7 @@ window.ZenFinanceModule = function (config) {
     const lang = ZenI18n.lang;
     const employees = S.getCollection('employees');
     const records = S.getCollection(config.collection);
+    const financePeriods = S.getCollection('financePeriods');
 
     const types = [...new Set(records.map((r) => r.type))];
 
@@ -106,6 +107,7 @@ window.ZenFinanceModule = function (config) {
         { label: lang === 'ar' ? 'الشهر' : 'Period', render: (r) => r.payrollPeriod ? U.monthLabel(r.payrollPeriod) : '—' },
         { label: ZenI18n.t('common.status'), render: (r) => UI.statusBadge(r.status) },
         { label: ZenI18n.t('common.actions'), sortable: false, render: (r) => `<div class="row-actions">
+          <button class="btn sm ${r.status === 'active' ? 'success' : 'secondary'}" data-toggle="${r.id}" title="${lang === 'ar' ? 'تفعيل/إيقاف الصرف' : 'Toggle payment'}">${r.status === 'active' ? (lang === 'ar' ? 'مفعّل' : 'On') : (lang === 'ar' ? 'متوقف' : 'Off')}</button>
           <button class="btn sm ghost" data-edit="${r.id}">✎</button>
           <button class="btn sm ghost" data-del="${r.id}">🗑</button>
         </div>` }
@@ -113,6 +115,7 @@ window.ZenFinanceModule = function (config) {
       rows: pageRows,
     });
 
+    wrap.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => { const r=S.getById(config.collection,b.dataset.toggle); if(!r)return; S.update(config.collection,r.id,{status:r.status==='active'?'archived':'active'}); renderTable(); });
     wrap.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => showForm(b.dataset.edit));
     wrap.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => del(b.dataset.del));
 
@@ -133,6 +136,9 @@ window.ZenFinanceModule = function (config) {
         ${UI.formField({ label: ZenI18n.t('common.type'), name: 'type', value: rec?.type, required: true, placeholder: config.typePlaceholder || '' })}
         ${UI.formField({ label: ZenI18n.t('common.amount'), name: 'amount', type: 'number', value: rec?.amount, required: true, attrs: ' min="0" step="10"' })}
         ${UI.formField({ label: ZenI18n.t('common.date'), name: 'effectiveDate', type: 'date', value: rec?.effectiveDate || U.today(), required: true })}
+        ${UI.formField({ label: lang === 'ar' ? 'الفترة الزمنية' : 'Financial Period', name: 'periodId', type: 'select', value: rec?.periodId || '', required: S.getCollection('financePeriods').length > 0, options: [{ value: '', label: lang === 'ar' ? 'اختر فترة' : 'Select period' }, ...S.getCollection('financePeriods').map(p => ({ value: p.id, label: p.name + ' (' + p.startDate + ' — ' + p.endDate + ')' }))] })}
+        <label class="field"><span>${lang === 'ar' ? 'تقريب هذا البند لأقرب 5 جنيه' : 'Round this item to nearest 5 EGP'}</span><span class="toggle-line"><input type="checkbox" name="roundToFive" ${rec?.roundToFive ? 'checked' : ''}> ${lang === 'ar' ? 'تفعيل التقريب' : 'Enable rounding'}</span></label>
+        <label class="field"><span>${lang === 'ar' ? 'تفعيل الصرف' : 'Enable payment'}</span><span class="toggle-line"><input type="checkbox" name="enabled" ${(rec ? rec.status === 'active' : true) ? 'checked' : ''}> ${lang === 'ar' ? 'احتساب هذا البند' : 'Include this item'}</span></label>
         ${UI.formField({ label: lang === 'ar' ? 'الشهر' : 'Payroll Period', name: 'payrollPeriod', type: 'month', value: rec?.payrollPeriod || U.currentMonth() })}
         ${UI.formField({ label: ZenI18n.t('common.status'), name: 'status', type: 'select', value: rec?.status || 'active', options: ['active', 'processed', 'archived'].map((s) => ({ value: s, label: ZenI18n.t('status.' + s, s) })) })}
         <label class="field full"><span>${ZenI18n.t('common.reason')}</span><textarea name="reason" rows="2">${U.esc(rec?.reason || '')}</textarea></label>
@@ -150,6 +156,12 @@ window.ZenFinanceModule = function (config) {
           const data = UI.readForm(form);
           if (!data.employeeId) { UI.toast(ZenI18n.t('common.required'), 'warning'); return; }
           data.amount = Number(data.amount) || 0;
+          data.roundToFive = form.elements.roundToFive.checked;
+          const enabled = form.elements.enabled.checked;
+          delete data.enabled;
+          if (enabled && data.status === 'archived') data.status = 'active';
+          if (!enabled) data.status = 'archived';
+          if (!data.periodId) delete data.periodId;
           if (id) {
             S.update(config.collection, id, data);
             UI.toast(lang === 'ar' ? 'تم التحديث' : 'Updated', 'success');
