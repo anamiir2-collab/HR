@@ -1881,3 +1881,39 @@ table.data { min-width: 100%; }
   }
   #app:not([hidden]) > .main { grid-column: 1 / -1; min-width: 0; }
 }
+
+
+/* ===== Shift planning calendar and financial rounding controls ===== */
+.shift-planner-card { min-width: 0; overflow: hidden; }
+.shift-planner-card .card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.shift-planner-card .card-head h3 { margin:0 0 5px; }
+.shift-planner-card .muted { margin:0; color:var(--text-muted); font-size:12px; }
+.shift-planner-card .form-grid { margin-top:16px; }
+.shift-planner-card .field[hidden] { display:none !important; }
+.sp-calendar-wrap { max-width:100%; overflow-x:auto; }
+.sp-calendar { display:grid; grid-template-columns:repeat(7,minmax(76px,1fr)); gap:5px; min-width:560px; }
+.sp-day-head { padding:8px 4px; text-align:center; font-size:12px; font-weight:700; color:var(--text-muted); }
+.sp-day { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-height:76px; padding:8px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text-primary); text-align:start; min-width:0; }
+button.sp-day { cursor:pointer; }
+.sp-day span { font-size:11px; line-height:1.35; overflow-wrap:anywhere; }
+.sp-day small { font-size:10px; font-weight:700; }
+.sp-day.empty { border:0; background:transparent; }
+.sp-day.work { background:var(--brand-50); border-color:var(--brand-100); }
+.sp-day.off { background:var(--surface-2); color:var(--text-muted); }
+.sp-day.friday { border-color:#d97706; }
+.sp-day.assigned { background:#fff7ed; border-color:#fb923c; color:#9a3412; }
+.sp-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; font-size:12px; color:var(--text-muted); }
+.sp-legend .work { color:var(--brand-700); }
+.sp-legend .off { color:var(--text-muted); }
+.sp-legend .assigned { color:#c2410c; }
+.rounding-settings { margin-bottom:16px; }
+.rounding-setting-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.rounding-option { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; min-width:0; }
+.rounding-option span { font-size:13px; overflow-wrap:anywhere; }
+.rounding-option input[type="checkbox"] { width:18px; height:18px; accent-color:var(--brand-700); flex:0 0 auto; }
+@media (max-width:768px) {
+  .sp-calendar { min-width:540px; }
+  .sp-day { min-height:68px; padding:6px; }
+  .rounding-setting-grid { grid-template-columns:minmax(0,1fr); }
+  .shift-planner-card .toolbar { align-items:stretch; flex-wrap:wrap; }
+}
