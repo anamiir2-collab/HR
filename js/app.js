@@ -133,6 +133,13 @@
         console.error('Demo data initialization failed:', e);
       }
     }
+    // Backfill the default flexible-rest quota for older employee records.
+    // Existing explicit values (including zero) are always preserved.
+    S.getCollection('employees').forEach((emp) => {
+      if (emp.monthlyRestQuota === undefined || emp.monthlyRestQuota === null || emp.monthlyRestQuota === '') {
+        S.update('employees', emp.id, { monthlyRestQuota: 4 });
+      }
+    });
     // Register modules
     Object.entries(MODULES).forEach(([name, fn]) => Router.register(name, fn));
     Router.start();
