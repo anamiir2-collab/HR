@@ -12,6 +12,7 @@ window.ZenShiftPlanner = (function () {
   function localDate(value) { const p = String(value || '').split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
   function shiftLabel(s, lang) { return s ? (lang === 'ar' ? (s.name || s.nameEn) : (s.nameEn || s.name)) : (lang === 'ar' ? 'غير محددة' : 'Unassigned'); }
   function planFor(employeeId) { return S.getCollection('shiftPlans').find(p => p.employeeId === employeeId) || null; }
+  function effectivePlanFor(employeeId) { const saved=planFor(employeeId); if(saved)return saved; const emp=S.getById('employees',employeeId); return emp&&emp.shiftId?{employeeId,mode:'fixed',fixedShiftId:emp.shiftId,anchorDate:dateKey(new Date())}:null; }
   function shiftById(id) { return S.getById('shifts', id); }
   function isFixedWorkday(shift, date) { const rest=(S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays)||[]; return !!(shift && shift.workingDays && shift.workingDays.includes(date.getDay()) && !rest.includes(date.getDay())); }
 
@@ -25,9 +26,10 @@ window.ZenShiftPlanner = (function () {
     }
     const start = localDate(plan.anchorDate || dateKey(date));
     const offset = Math.floor((new Date(date.getFullYear(), date.getMonth(), date.getDate()) - new Date(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000);
-    const dayCount = Math.max(1, Number(plan.dayCount) || 3);
-    const nightCount = Math.max(1, Number(plan.nightCount) || 3);
-    const offCount = Math.max(1, Number(plan.offCount) || 3);
+    const defaults=Object.assign({dayCount:3,nightCount:3,offCount:3},S.settings.shiftRules||{});
+    const dayCount = Math.max(1, Number(plan.dayCount) || Number(defaults.dayCount) || 3);
+    const nightCount = Math.max(1, Number(plan.nightCount) || Number(defaults.nightCount) || 3);
+    const offCount = Math.max(1, Number(plan.offCount) || Number(defaults.offCount) || 3);
     const cycleLength = dayCount + nightCount + offCount;
     const index = ((offset % cycleLength) + cycleLength) % cycleLength;
     if (index < dayCount) return { type: 'work', shift: shiftById(plan.dayShiftId), label: ZenI18n.lang === 'ar' ? 'نهاري' : 'Day' };
@@ -45,7 +47,7 @@ window.ZenShiftPlanner = (function () {
     const orders = S.getCollection('assignmentOrders').slice().sort((a,b) => String(b.date).localeCompare(String(a.date)));
     const defaultRules = Object.assign({dayCount:3,nightCount:3,offCount:3}, S.settings.shiftRules || {});
     if (!selectedEmployee || !employees.some(e => e.id === selectedEmployee)) selectedEmployee = employees[0]?.id || '';
-    const plan = planFor(selectedEmployee);
+    const plan = effectivePlanFor(selectedEmployee);
     const emp = employees.find(e => e.id === selectedEmployee);
     const isAr = lang === 'ar';
     const text = (ar, en) => isAr ? ar : en;
@@ -132,7 +134,7 @@ window.ZenShiftPlanner = (function () {
     if (isNaN(first.getTime())) return;
     const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     const startDow = first.getDay();
-    const plan = planFor(selectedEmployee);
+    const plan = effectivePlanFor(selectedEmployee);
     const orders = S.getCollection('assignmentOrders');
     const weekdayNames = ar ? ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     let cells = weekdayNames.map(d => '<div class="sp-day-head">' + d + '</div>').join('');
@@ -158,7 +160,7 @@ window.ZenShiftPlanner = (function () {
   function actualFor(employeeId, date) {
     const key = dateKey(date);
     const order = S.getCollection('assignmentOrders').find(o => o.employeeId === employeeId && o.date === key);
-    const plan = planFor(employeeId);
+    const plan = effectivePlanFor(employeeId);
     const base = expectedFor(plan, date);
     if (order) return { type:'order', shift:shiftById(order.shiftId), order, mode:'assignment' };
     return { type:base.type, shift:base.shift, order:null, mode:plan ? plan.mode : 'none' };
