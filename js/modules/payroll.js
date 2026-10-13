@@ -362,8 +362,24 @@ window.ZenPayroll = (function () {
           const cycleEnd = cycle ? localKey(cycle.end) : ym + '-31';
           const attendanceRows = S.findBy('attendance', a => a.employeeId === emp.id && a.date >= cycleStart && a.date <= cycleEnd && ['present','late','remote'].includes(a.status));
           const workedMinutes = attendanceRows.reduce((sum, a) => sum + Math.max(0, Number(a.workMinutes) || 0), 0);
-          const targetHours = Math.max(0, Number(emp.monthlyHours) || Number(S.settings.monthlyWorkingHours) || 208);
           const dailyHours = Math.max(0.5, Number(emp.dailyHours) || 8);
+          const restMode = emp.restDaysMode || 'default';
+          const restDates = Array.isArray(emp.restDates) ? emp.restDates : String(emp.restDates || '').split(/[\\n,;]+/).map(v => v.trim()).filter(Boolean);
+          const recurring = (Array.isArray(emp.recurringRestDays) ? emp.recurringRestDays : String(emp.recurringRestDays || '').split(/[\\s,;]+/)).map(Number).filter(Number.isFinite);
+          let scheduledWorkDays = 0;
+          if (cycle) {
+            for (let d = new Date(cycle.start.getFullYear(), cycle.start.getMonth(), cycle.start.getDate()); d <= cycle.end; d.setDate(d.getDate()+1)) {
+              const key = localKey(d);
+              let rest = false;
+              if (restMode === 'dates') rest = restDates.includes(key);
+              else if (restMode === 'monthlyDays') rest = recurring.includes(d.getDate());
+              else if (restMode === 'weekly') rest = recurring.includes(d.getDay());
+              else if (restMode === 'default') rest = ((S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays) || []).includes(d.getDay());
+              if (!rest) scheduledWorkDays++;
+            }
+          }
+          const targetHours = Number(emp.monthlyHours) > 0 ? Number(emp.monthlyHours) :
+            (Number(emp.dailyHours) > 0 ? dailyHours * scheduledWorkDays : (Number(S.settings.monthlyWorkingHours) || 208));
           const workedHours = workedMinutes / 60;
           const overtimeHours = attendanceRows.length ? Math.max(0, workedHours - targetHours) : 0;
           const expectedWorkDays = targetHours / dailyHours;
