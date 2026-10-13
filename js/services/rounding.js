@@ -110,16 +110,9 @@ window.ZenRounding = (function () {
     if (!cfg.enabled || !categoryEnabled || original <= 0) {
       return { original, rounded: original, difference: 0, applied: false };
     }
-    let rounded;
-    if (isDeduction) {
-      if (cfg.deductionsPolicy === 'none') {
-        return { original, rounded: original, difference: 0, applied: false };
-      }
-      rounded = cfg.deductionsPolicy === 'up' ? roundUp(original, cfg.increment) : roundDown(original, cfg.increment);
-    } else {
-      // Earnings always round DOWN
-      rounded = roundDown(original, cfg.increment);
-    }
+    // Every enabled category uses the same nearest-increment formula.
+    // Per-item checkboxes decide which categories are rounded.
+    const rounded = roundDown(original, cfg.increment);
     const difference = rounded - original; // negative for down, positive for up
     return { original, rounded, difference, applied: rounded !== original };
   }
