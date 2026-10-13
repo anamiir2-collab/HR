@@ -13,7 +13,7 @@ window.ZenStore = (function () {
   // Collections registry — extended for AGRIMASTERS HR
   const COLLECTIONS = [
     // Core HR
-    'employees', 'departments', 'shifts', 'attendance', 'leaves',
+    'employees', 'departments', 'shifts', 'shiftPlans', 'assignmentOrders', 'attendance', 'leaves',
     'payroll', 'allowances', 'rewards', 'penalties', 'deductions',
     'insurance', 'loans', 'contracts', 'performance', 'vacancies',
     'candidates',
