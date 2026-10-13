@@ -111,6 +111,7 @@ window.ZenEmployees = (function () {
           <button class="btn sm ghost" data-view="${e.id}" title="${ZenI18n.t('common.view')}">👁</button>
           <button class="btn sm ghost" data-edit="${e.id}" title="${ZenI18n.t('common.edit')}">✎</button>
           <button class="btn sm ghost" data-archive="${e.id}" title="${ZenI18n.t('common.archive')}">↩</button>
+          <button class="btn sm danger" data-delete-employee="${e.id}" title="${ZenI18n.lang === 'ar' ? 'حذف الموظف' : 'Delete employee'}" aria-label="${ZenI18n.lang === 'ar' ? 'حذف الموظف' : 'Delete employee'}">×</button>
         </div>` }
       ],
       rows: pageRows,
@@ -119,6 +120,10 @@ window.ZenEmployees = (function () {
     wrap.querySelectorAll('[data-view]').forEach((b) => b.onclick = () => showDetail(b.dataset.view));
     wrap.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => showForm(b.dataset.edit));
     wrap.querySelectorAll('[data-archive]').forEach((b) => b.onclick = () => archive(b.dataset.archive));
+    wrap.querySelectorAll('[data-delete-employee]').forEach((b) => {
+      b.type = 'button';
+      b.onclick = () => deleteEmployee(b.dataset.deleteEmployee);
+    });
 
     // sort headers
     wrap.querySelectorAll('th:not(.no-sort)').forEach((th, i) => {
@@ -466,6 +471,54 @@ window.ZenEmployees = (function () {
 
   function detailItem(label, value, cls) {
     return `<div class="detail-item"><span class="label">${U.esc(label)}</span><span class="value ${cls || ''}">${U.esc(value)}</span></div>`;
+  }
+
+  function deleteEmployee(id) {
+    const emp = S.getById('employees', id);
+    if (!emp) return;
+
+    // Keep historical and linked records intact. Employees with related data
+    // must be archived instead of hard-deleted.
+    const relatedCollections = [
+      'attendance', 'payroll', 'leaves', 'rewards', 'allowances', 'penalties',
+      'deductions', 'loans', 'contracts', 'documents', 'performance',
+      'disciplinary', 'offboarding', 'fingerprints', 'insurance',
+      'assignmentOrders', 'shiftPlans'
+    ];
+    const relatedCount = relatedCollections.reduce((count, collection) => {
+      try {
+        return count + S.getCollection(collection).filter((record) =>
+          record.employeeId === id || record.employee_id === id
+        ).length;
+      } catch (_) {
+        return count;
+      }
+    }, 0);
+
+    if (relatedCount > 0) {
+      UI.confirm({
+        title: ZenI18n.lang === 'ar' ? 'لا يمكن حذف الموظف' : 'Employee cannot be deleted',
+        message: ZenI18n.lang === 'ar'
+          ? 'لدى هذا الموظف سجلات مرتبطة. استخدم «أرشفة» للحفاظ على سجلات الحضور والرواتب والبيانات التاريخية.'
+          : 'This employee has linked records. Use Archive to preserve attendance, payroll, and historical data.',
+        kind: 'warning',
+        confirmLabel: ZenI18n.lang === 'ar' ? 'حسنًا' : 'OK'
+      });
+      return;
+    }
+
+    UI.confirm({
+      title: ZenI18n.lang === 'ar' ? 'تأكيد الحذف' : 'Confirm deletion',
+      message: 'هل أنت متأكد من الحذف؟',
+      kind: 'danger',
+      confirmLabel: 'تأكيد',
+      onConfirm: () => {
+        S.remove('employees', id);
+        if (window.ZenAudit) ZenAudit.log('delete', 'employees', id, { employeeName: emp.name });
+        UI.toast(ZenI18n.lang === 'ar' ? 'تم حذف الموظف' : 'Employee deleted', 'success');
+        renderTable();
+      }
+    });
   }
 
   function archive(id) {
