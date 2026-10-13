@@ -148,9 +148,56 @@ A suitable secured backend is required. Recommended architecture:
 
 ## 🧪 Testing
 
-All JavaScript files pass `node --check` syntax validation. The following scenarios were verified during development:
+### Automated test suite (v2.2.0+)
 
-### Passed tests (local, in-browser)
+The project ships with a **Vitest + jsdom** test suite that exercises the core
+business logic without a browser. Run it locally:
+
+```bash
+cd agrimasters-hr
+npm install         # one-time, installs vitest + jsdom
+npm test            # runs all tests once
+npm run test:watch  # re-runs on file changes
+npm run syntax-check  # node --check on every JS file
+```
+
+**Current coverage:**
+
+| Suite | Tests | What it verifies |
+|-------|-------|------------------|
+| `unit/storage.test.js` | 22 | CRUD, schema versioning, quota handling, import/export, clearAllDemo, safety guards |
+| `unit/utils.test.js` | 29 | HTML escape, money/date/time formatting, time math, initials, clone, debounce |
+| `unit/i18n.test.js` | 13 | ar/en translation, language switching, RTL/LTR, DOM `data-i18n` application |
+| `unit/audit.test.js` | 9 | Audit log create/query/filter, convenience wrappers, size cap, auditEnabled toggle |
+| `unit/confirm-dialog.test.js` | 19 | Standardized Arabic text, double-click prevention, async support, error retry, focus, a11y |
+| `integration/employees.test.js` | 12 | Employee CRUD, search, linked-record delete protection, archive flow, audit on delete |
+| **Total** | **104** | All passing ✓ |
+
+#### Deletion-confirmation coverage
+
+Every deletion path in the application goes through the shared `UI.confirm()`
+dialog in `js/ui.js`. The test suite verifies:
+
+- ✅ Title is forced to `تأكيد الحذف` for any delete-related action
+- ✅ Message is forced to `هل أنت متأكد من الحذف؟`
+- ✅ Confirm button label is `تأكيد`, cancel is `إلغاء`
+- ✅ Clicking `إلغاء` never invokes `onConfirm`
+- ✅ Clicking the `×` close button never invokes `onConfirm`
+- ✅ Clicking the backdrop never invokes `onConfirm`
+- ✅ Repeated rapid clicks on `تأكيد` invoke `onConfirm` **exactly once**
+- ✅ Buttons are disabled immediately after confirm click
+- ✅ Async `onConfirm` is awaited before the dialog closes
+- ✅ If `onConfirm` throws, the dialog stays open and shows an error toast (no false success)
+- ✅ After a throw, buttons are re-enabled for retry
+- ✅ Focus moves to the confirm button on open (keyboard accessible)
+- ✅ Dialog has `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`
+- ✅ Employees with linked records (payroll/attendance/etc.) **cannot** be hard-deleted — must be archived
+- ✅ Employees with no linked records can be deleted, but only after confirmation
+- ✅ Every confirmed delete writes an audit-log entry
+
+### Manual / in-browser verification (v2.0.0 — still applies)
+
+All JavaScript files pass `node --check` syntax validation. The following scenarios were verified during development:
 
 - ✅ Application boots without console errors
 - ✅ Login gate accepts default `admin` code
@@ -193,11 +240,22 @@ All JavaScript files pass `node --check` syntax validation. The following scenar
 agrimasters-hr/
 ├── index.html              # App shell, branding, script loader
 ├── manifest.json           # PWA manifest (AGRIMASTERS HR branding)
-├── sw.js                   # Service worker (versioned cache)
+├── sw.js                   # Service worker (versioned cache v2.2.0)
+├── package.json            # Test tooling (vitest + jsdom)
+├── vitest.config.js        # Test runner configuration
 ├── README.md               # This file
 ├── assets/                 # Icons (PNG/SVG)
 ├── css/
-│   └── style.css           # Complete design system (forest-green palette)
+│   ├── style.css           # CSS manifest (@imports the split files in order)
+│   ├── variables.css       # CSS reset + :root design tokens + base body
+│   ├── gate.css            # Access gate (login screen)
+│   ├── forms.css           # Form field styles
+│   ├── buttons.css         # Buttons + icon buttons
+│   ├── layout.css          # App shell, sidebar, topbar, main content
+│   ├── components.css      # Cards, stats, toolbar, tables, pagination, empty, modal, toast, drawer, charts, detail, tabs
+│   ├── responsive.css      # Responsive media queries
+│   ├── premium.css         # Premium UI enhancement layer
+│   └── modules.css         # Module-specific styles (upload zone, alerts, document chips, print, shift planner)
 └── js/
     ├── app.js              # Bootstrap, nav groups, module registry
     ├── auth.js             # Local access gate (convenience only)
@@ -205,39 +263,87 @@ agrimasters-hr/
     ├── i18n.js             # Arabic/English dictionary
     ├── router.js           # Hash-based SPA router
     ├── storage.js          # localStorage layer with schema versioning + migration
-    ├── ui.js               # Modals, toasts, tables, badges, charts, forms
+    ├── ui.js               # Modals, toasts, tables, badges, charts, forms, shared confirm dialog
     ├── utils.js            # Formatting, dates, money, escape, download, print
     ├── services/
     │   ├── audit.js        # Audit trail logging service
     │   ├── backup.js       # Backup/restore helpers
     │   ├── export.js       # CSV + real .xlsx (SheetJS) + JSON + print
-    │   └── xlsx-import.js  # Generic XLSX/CSV/TXT file reader + validator
-    └── modules/
-        ├── dashboard.js
-        ├── employees.js
-        ├── departments.js
-        ├── attendance.js
-        ├── fingerprint.js       # NEW v2
-        ├── leaves.js
-        ├── shifts.js
-        ├── payroll.js
-        ├── rewards.js
-        ├── allowances.js
-        ├── penalties.js
-        ├── deductions.js
-        ├── insurance.js
-        ├── loans.js
-        ├── contracts.js
-        ├── documents.js         # NEW v2
-        ├── disciplinary.js      # NEW v2
-        ├── offboarding.js       # NEW v2
-        ├── performance.js
-        ├── recruitment.js
-        ├── reports.js
-        ├── audit.js             # NEW v2 (audit trail viewer)
-        ├── settings.js
-        └── finance-factory.js   # Factory for rewards/allowances/penalties/deductions
+    │   ├── xlsx-import.js  # Generic XLSX/CSV/TXT file reader + validator
+    │   ├── rounding.js     # Financial rounding helpers
+    │   ├── finance-rules.js # Payroll calculation rules
+    │   └── rest-days.js    # Rest-day / weekly-rest helpers
+    ├── modules/
+    │   ├── dashboard.js
+    │   ├── employees.js
+    │   ├── departments.js
+    │   ├── attendance.js
+    │   ├── fingerprint.js       # Fingerprint import & reconciliation
+    │   ├── leaves.js
+    │   ├── shifts.js
+    │   ├── shift-planner.js     # Shift assignment & rotation planner
+    │   ├── payroll.js
+    │   ├── rewards.js
+    │   ├── allowances.js
+    │   ├── penalties.js
+    │   ├── deductions.js
+    │   ├── insurance.js
+    │   ├── loans.js
+    │   ├── contracts.js
+    │   ├── documents.js         # Employee document management
+    │   ├── disciplinary.js      # Disciplinary actions & investigations
+    │   ├── offboarding.js       # Resignation/termination workflow
+    │   ├── performance.js
+    │   ├── recruitment.js
+    │   ├── reports.js
+    │   ├── audit.js             # Audit trail viewer
+    │   ├── settings.js
+    │   ├── central-settings.js  # Payroll & shift central settings
+    │   └── finance-factory.js   # Factory for rewards/allowances/penalties/deductions
+    └── tests/
+        ├── setup.js             # Vitest setup — loads sources into jsdom
+        ├── helpers/
+        │   └── reset.js         # resetStorage() helper
+        ├── unit/
+        │   ├── storage.test.js
+        │   ├── utils.test.js
+        │   ├── i18n.test.js
+        │   ├── audit.test.js
+        │   └── confirm-dialog.test.js
+        └── integration/
+            └── employees.test.js
 ```
+
+---
+
+## 🆕 v2.2.0 Changelog — Refactor, Testing, Confirmation Hardening
+
+### Codebase reorganization
+- **Split the 1969-line `css/style.css`** into 9 focused files (`variables.css`, `gate.css`, `forms.css`, `buttons.css`, `layout.css`, `components.css`, `responsive.css`, `premium.css`, `modules.css`). The main `style.css` is now a small manifest that uses `@import` to pull them in the exact original cascade order — visual behavior is unchanged.
+- **Removed 4 dead legacy files** (`js/attendance.js`, `js/employees.js`, `js/leaves.js`, `js/reports.js`) that defined obsolete `ZenStore.setEmployees()` / `ZenStore.setLeaves()` APIs no longer present in the codebase. They were not loaded by `index.html` and only caused confusion.
+- **Service worker `CORE_ASSETS`** list updated to cache every split CSS file for offline use.
+
+### Shared confirmation dialog hardening (`js/ui.js`)
+- **Double-click prevention**: the confirm button is disabled the moment it is clicked; `onConfirm` can only run once per dialog instance. Repeated rapid clicks (or repeated Enter presses) cannot trigger duplicate deletions.
+- **Async support**: `onConfirm` may return a Promise. The dialog stays open with buttons disabled while the promise is in flight, then closes on success.
+- **Error recovery**: if `onConfirm` throws (e.g. a `QuotaExceededError`), the dialog stays open, the error is surfaced via a toast, and the buttons are re-enabled so the user can retry. A storage failure can no longer produce a false success notification.
+- **Focus management**: focus moves to the confirm button on open for keyboard users.
+- **Accessibility**: the dialog now has `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby="confirm-dlg-title"`, `aria-describedby="confirm-dlg-msg"`.
+- **Standardized Arabic text**: any delete-related title or message (matched by `حذف | delete | remove | إزالة`) is forced to:
+  - Title: `تأكيد الحذف`
+  - Message: `هل أنت متأكد من الحذف؟`
+  - Confirm: `تأكيد`
+  - Cancel: `إلغاء`
+- **Informational dialogs preserved**: blocked operations that use `confirm()` without an `onConfirm` (e.g. "cannot delete employee with linked records") keep their custom explanatory text.
+
+### Automated test suite (NEW)
+- Added **Vitest + jsdom** test infrastructure with `package.json` and `vitest.config.js`.
+- **104 tests** across 6 suites covering storage CRUD, utils, i18n, audit log, the confirm dialog, and employee CRUD integration.
+- Run with `npm test` — all tests pass.
+
+### Service worker
+- Cache version bumped `v2.1.8 → v2.2.0`.
+- `CORE_ASSETS` expanded to include all 9 split CSS files.
 
 ---
 

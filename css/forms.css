@@ -1,0 +1,37 @@
+/* ============================================================
+   Form fields
+   Extracted from style.css lines 154-184.
+   Order matters: loaded via @import in css/style.css.
+   ============================================================ */
+
+/* -------- Field -------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: start;
+}
+.field > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+.field .error-text { color: var(--danger-700); font-size: 12px; }

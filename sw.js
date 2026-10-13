@@ -1,10 +1,23 @@
 // AGRIMASTERS HR Service Worker
-const CACHE_NAME = "agrimasters-hr-v2.1.8";
+// v2.2.0 — CSS split into modular files; all listed explicitly so the
+// offline cache stays consistent with the redesigned stylesheet layout.
+const CACHE_NAME = "agrimasters-hr-v2.2.0";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  // CSS manifest + split files (loaded via @import in css/style.css)
   "./css/style.css",
+  "./css/variables.css",
+  "./css/gate.css",
+  "./css/forms.css",
+  "./css/buttons.css",
+  "./css/layout.css",
+  "./css/components.css",
+  "./css/responsive.css",
+  "./css/premium.css",
+  "./css/modules.css",
+  // Core JS
   "./js/utils.js",
   "./js/i18n.js",
   "./js/storage.js",
@@ -12,6 +25,7 @@ const CORE_ASSETS = [
   "./js/ui.js",
   "./js/router.js",
   "./js/demo-data.js",
+  // Services
   "./js/services/audit.js",
   "./js/services/export.js",
   "./js/services/rounding.js",
@@ -19,6 +33,7 @@ const CORE_ASSETS = [
   "./js/services/rest-days.js",
   "./js/services/backup.js",
   "./js/services/xlsx-import.js",
+  // Modules
   "./js/modules/dashboard.js",
   "./js/modules/employees.js",
   "./js/modules/departments.js",
@@ -45,6 +60,7 @@ const CORE_ASSETS = [
   "./js/modules/settings.js",
   "./js/modules/central-settings.js",
   "./js/app.js",
+  // Assets
   "./assets/icon.svg"
 ];
 

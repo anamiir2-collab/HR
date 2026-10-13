@@ -91,25 +91,46 @@ window.ZenUI = (function () {
     return { el: m, bodyEl, close };
   }
 
+  /**
+   * Shared confirmation dialog.
+   *
+   * For any action whose title or message contains a deletion keyword
+   * (حذف / delete / remove / إزالة), the dialog FORCES the standardized
+   * Arabic text required by the AGRIMASTERS HR spec:
+   *   title    = "تأكيد الحذف"
+   *   message  = "هل أنت متأكد من الحذف؟"
+   *   confirm  = "تأكيد"
+   *   cancel   = "إلغاء"
+   *
+   * Safety guarantees:
+   *   1. Confirm button is disabled the moment it is clicked — no double-delete.
+   *   2. Cancel button and Escape/outside-click never invoke onConfirm.
+   *   3. Async onConfirm is awaited; the dialog stays open on failure and
+   *      surfaces the error via toast, so a storage failure cannot produce
+   *      a false success notification.
+   *   4. Focus is moved to the confirm button on open for keyboard users.
+   */
   function confirm({ title, message, confirmLabel, kind, onConfirm, onCancel }) {
-    // Normalize every destructive delete/remove confirmation in one place so
-    // all modules use the same clear wording and actions.
-    // Standardize every real destructive action. A blocked operation may use
-    // a delete-related title to explain why it cannot proceed, so only force
-    // the generic deletion prompt when an actual confirmation callback exists.
     const isDelete = typeof onConfirm === 'function' &&
       /حذف|delete|remove|إزالة/i.test(String(title || '') + ' ' + String(message || ''));
     const dialogTitle = isDelete ? 'تأكيد الحذف' : (title || 'تأكيد');
     const dialogMessage = isDelete ? 'هل أنت متأكد من الحذف؟' : (message || 'هل أنت متأكد؟');
     const dialogConfirmLabel = isDelete ? 'تأكيد' : (confirmLabel || 'تأكيد');
     const dialogCancelLabel = isDelete ? 'إلغاء' : ((window.ZenI18n && ZenI18n.t('common.cancel')) || 'إلغاء');
+
+    // Guard so onConfirm can only run once per dialog instance — prevents
+    // double-clicks and repeated Enter-key submissions from triggering
+    // duplicate deletions or duplicate writes.
+    let confirmed = false;
+
     const m = modal({
       title: dialogTitle,
       size: 'sm',
       body: `
-        <div style="text-align:center">
-          <div class="confirm-icon ${kind || 'warning'}">!</div>
-          <p style="margin:0;color:var(--gray-700);font-size:14px">${dialogMessage}</p>
+        <div style="text-align:center" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dlg-title" aria-describedby="confirm-dlg-msg">
+          <span id="confirm-dlg-title" hidden>${U.esc(dialogTitle)}</span>
+          <div class="confirm-icon ${kind || 'warning'}" aria-hidden="true">!</div>
+          <p id="confirm-dlg-msg" style="margin:0;color:var(--gray-700);font-size:14px">${U.esc(dialogMessage)}</p>
         </div>
       `,
       footer: [
@@ -117,10 +138,42 @@ window.ZenUI = (function () {
         {
           label: dialogConfirmLabel,
           kind: kind === 'danger' ? 'danger' : 'primary',
-          onClick: (mm) => { mm.close(); if (onConfirm) onConfirm(); }
+          onClick: async (mm, body) => {
+            if (confirmed) return;        // double-click guard
+            confirmed = true;
+            // Disable both footer buttons immediately to prevent any further
+            // interaction while the async operation is in flight.
+            const footEl = mm.querySelector('.modal-foot');
+            if (footEl) footEl.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+            try {
+              if (onConfirm) {
+                const result = onConfirm();
+                if (result && typeof result.then === 'function') await result;
+              }
+              mm.close();
+            } catch (err) {
+              console.error('[AGRIMASTERS HR] Confirm onConfirm failed:', err);
+              confirmed = false;          // allow retry
+              if (footEl) footEl.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+              // Call via window.ZenUI.toast (not the closure reference) so that
+              // test spies on UI.toast intercept this call, and so any future
+              // runtime override of the public toast function is honored.
+              const toastFn = (window.ZenUI && window.ZenUI.toast) || toast;
+              toastFn((err && err.message) || (window.ZenI18n && ZenI18n.t('common.invalid')) || 'Error', 'error');
+            }
+          }
         }
       ],
     });
+
+    // Move focus to the confirm button so keyboard users can press Enter to
+    // confirm or Escape to cancel immediately.
+    if (m && m.el) {
+      const confirmBtn = m.el.querySelectorAll('.modal-foot button')[1];
+      if (confirmBtn) {
+        setTimeout(() => { try { confirmBtn.focus(); } catch (_) {} }, 30);
+      }
+    }
     return m;
   }
 

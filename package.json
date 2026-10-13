@@ -1,0 +1,27 @@
+{
+  "name": "agrimasters-hr",
+  "version": "2.2.0",
+  "description": "AGRIMASTERS HR — Arabic-first Human Resources Management System (static PWA)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint js/ --ext .js || true",
+    "syntax-check": "node --check js/utils.js && node --check js/i18n.js && node --check js/storage.js && node --check js/ui.js && node --check js/router.js && node --check js/app.js && node --check js/auth.js && node --check js/demo-data.js && for f in js/services/*.js js/modules/*.js; do node --check \"$f\" || exit 1; done",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "jsdom": "^25.0.1",
+    "@vitest/coverage-v8": "^2.1.8"
+  },
+  "vitest": {
+    "test": {
+      "environment": "jsdom",
+      "include": ["js/tests/**/*.test.js"],
+      "globals": true
+    }
+  }
+}

@@ -1,0 +1,106 @@
+/* ============================================================
+   CSS Reset + :root design tokens + base body
+   Extracted from style.css lines 1-100.
+   Order matters: loaded via @import in css/style.css.
+   ============================================================ */
+
+/* ============================================================
+   AGRIMASTERS HR — Human Resources Management System
+   Comprehensive design system (RTL/LTR, mobile-first, responsive)
+   Forest-green corporate palette for an industrial company.
+   ============================================================ */
+
+/* -------- CSS Reset & Variables -------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+img { max-width: 100%; display: block; }
+
+:root {
+  /* Brand palette — forest green & warm neutrals (AGRIMASTERS) */
+  --brand-950: #052e16;
+  --brand-900: #14532d;
+  --brand-800: #166534;
+  --brand-700: #15803d;
+  --brand-600: #16a34a;
+  --brand-500: #22c55e;
+  --brand-100: #dcfce7;
+  --brand-50:  #f0fdf4;
+
+  --accent-700: #b45309;
+  --accent-500: #f59e0b;
+  --accent-100: #fef3c7;
+
+  --success-700: #15803d;
+  --success-500: #22c55e;
+  --success-100: #dcfce7;
+
+  --warning-700: #b45309;
+  --warning-500: #f59e0b;
+  --warning-100: #fef3c7;
+
+  --danger-700: #b91c1c;
+  --danger-500: #ef4444;
+  --danger-100: #fee2e2;
+
+  --info-700: #1d4ed8;
+  --info-500: #3b82f6;
+  --info-100: #dbeafe;
+
+  --gray-900: #0f172a;
+  --gray-800: #1e293b;
+  --gray-700: #334155;
+  --gray-600: #475569;
+  --gray-500: #64748b;
+  --gray-400: #94a3b8;
+  --gray-300: #cbd5e1;
+  --gray-200: #e2e8f0;
+  --gray-100: #f1f5f9;
+  --gray-50:  #f8fafc;
+  --white:    #ffffff;
+
+  --bg: #f5f7f5;
+  --surface: #ffffff;
+  --surface-2: #fafbfa;
+  --text: var(--gray-800);
+  --text-muted: var(--gray-500);
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+
+  --sidebar-w: 264px;
+  --topbar-h: 72px;
+
+  --font-ar: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+  --font-en: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SF Mono', Menlo, Monaco, 'Cascadia Code', monospace;
+}
+
+html[lang="en"] body { font-family: var(--font-en); }
+html[lang="ar"] body { font-family: var(--font-ar); }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* RTL/LTR awareness */
+html[dir="rtl"] .flip { transform: scaleX(-1); }
+html[dir="rtl"] .chevron { transform: rotate(180deg); }
