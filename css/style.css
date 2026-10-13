@@ -1960,3 +1960,10 @@ html[dir="rtl"] .toggle-line input[type="checkbox"]:checked::after { transform:t
   .employee-photo-actions { flex-basis:100%; }
   .employee-mini-photo { width:30px; height:30px; flex-basis:30px; }
 }
+
+
+/* Monthly flexible rest-day indicators */
+.sp-day.monthly-rest { border-color: var(--brand-500, var(--brand-600)); box-shadow: inset 0 0 0 1px var(--brand-100); }
+.badge.monthly-rest-badge { background: var(--brand-50); color: var(--brand-700); }
+#att-form select[name="status"] { min-width: 0; }
+@media (max-width:640px) { .employee-photo-editor, .employee-photo-actions { min-width: 0; } }
