@@ -107,6 +107,8 @@
   }
 
   function showApp() {
+    closeNotifDrawer();
+    closeMenu();
     document.getElementById('gate-view').hidden = true;
     document.getElementById('app').hidden = false;
     buildNav();
@@ -128,6 +130,8 @@
   }
 
   function showGate() {
+    closeNotifDrawer();
+    closeMenu();
     document.getElementById('gate-view').hidden = false;
     document.getElementById('app').hidden = true;
     const form = document.getElementById('gate-form');
@@ -361,23 +365,46 @@
   }
 
   function openNotifDrawer() {
-    document.getElementById('notif-drawer').hidden = false;
-    document.getElementById('notif-scrim').hidden = false;
-    document.getElementById('notif-scrim').classList.add('visible');
+    closeMenu();
+    const drawer = document.getElementById('notif-drawer');
+    const scrim = document.getElementById('notif-scrim');
+    if (!drawer || !scrim) return;
+    drawer.hidden = false;
+    scrim.hidden = false;
+    scrim.classList.add('visible');
+    drawer.setAttribute('aria-hidden', 'false');
   }
   function closeNotifDrawer() {
-    document.getElementById('notif-drawer').hidden = true;
-    document.getElementById('notif-scrim').hidden = true;
-    document.getElementById('notif-scrim').classList.remove('visible');
+    const drawer = document.getElementById('notif-drawer');
+    const scrim = document.getElementById('notif-scrim');
+    if (drawer) {
+      drawer.hidden = true;
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+    if (scrim) {
+      scrim.classList.remove('visible');
+      scrim.hidden = true;
+    }
   }
 
   function openMenu() {
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('scrim').classList.add('visible');
+    closeNotifDrawer();
+    const sidebar = document.getElementById('sidebar');
+    const scrim = document.getElementById('scrim');
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim) {
+      scrim.hidden = false;
+      scrim.classList.add('visible');
+    }
   }
   function closeMenu() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('scrim').classList.remove('visible');
+    const sidebar = document.getElementById('sidebar');
+    const scrim = document.getElementById('scrim');
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim) {
+      scrim.classList.remove('visible');
+      scrim.hidden = true;
+    }
   }
 
   // Wire up global actions
