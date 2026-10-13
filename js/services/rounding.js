@@ -216,15 +216,15 @@ window.ZenRounding = (function () {
    */
   function verifyExamples() {
     const cases = [
-      { input: 1523, expected: 1520 },
+      { input: 1523, expected: 1525 },
       { input: 1537, expected: 1535 },
-      { input: 1528, expected: 1525 },
+      { input: 1528, expected: 1530 },
       { input: 1530, expected: 1530 },
       { input: 15237, expected: 15235 },
       { input: 15239, expected: 15240 },
       { input: 15240, expected: 15240 },
       { input: 0, expected: 0 },
-      { input: 3, expected: 0 },
+      { input: 3, expected: 5 },
       { input: 5, expected: 5 },
       { input: 7, expected: 5 },
     ];
