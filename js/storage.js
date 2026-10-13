@@ -13,7 +13,7 @@ window.ZenStore = (function () {
   // Collections registry — extended for AGRIMASTERS HR
   const COLLECTIONS = [
     // Core HR
-    'employees', 'departments', 'shifts', 'shiftPlans', 'assignmentOrders', 'attendance', 'leaves',
+    'employees', 'departments', 'shifts', 'shiftPlans', 'assignmentOrders', 'financePeriods', 'attendance', 'leaves',
     'payroll', 'allowances', 'rewards', 'penalties', 'deductions',
     'insurance', 'loans', 'contracts', 'performance', 'vacancies',
     'candidates',
@@ -40,6 +40,8 @@ window.ZenStore = (function () {
     currency: 'EGP',
     language: 'ar',
     defaultShift: 'Morning',
+    payrollCycle: { startDay: 26, endDay: 25 },
+    shiftRules: { dayCount: 3, nightCount: 3, offCount: 3, weeklyRestDays: [5], requireAssignmentOnRestDay: true },
     workingDays: [0, 1, 2, 3, 4], // Sun-Thu
     workStartTime: '08:00',
     workEndTime: '17:00',
@@ -86,6 +88,8 @@ window.ZenStore = (function () {
         penalties: true,
         advances: true,
         insurance: false,
+        tax: false,
+        otherDeductions: false,
       },
     },
   };
