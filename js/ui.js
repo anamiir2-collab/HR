@@ -94,7 +94,11 @@ window.ZenUI = (function () {
   function confirm({ title, message, confirmLabel, kind, onConfirm, onCancel }) {
     // Normalize every destructive delete/remove confirmation in one place so
     // all modules use the same clear wording and actions.
-    const isDelete = /حذف|delete|remove|إزالة/i.test(String(title || '') + ' ' + String(message || ''));
+    // Standardize every real destructive action. A blocked operation may use
+    // a delete-related title to explain why it cannot proceed, so only force
+    // the generic deletion prompt when an actual confirmation callback exists.
+    const isDelete = typeof onConfirm === 'function' &&
+      /حذف|delete|remove|إزالة/i.test(String(title || '') + ' ' + String(message || ''));
     const dialogTitle = isDelete ? 'تأكيد الحذف' : (title || 'تأكيد');
     const dialogMessage = isDelete ? 'هل أنت متأكد من الحذف؟' : (message || 'هل أنت متأكد؟');
     const dialogConfirmLabel = isDelete ? 'تأكيد' : (confirmLabel || 'تأكيد');
