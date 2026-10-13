@@ -33,7 +33,7 @@ window.ZenAttendance = (function () {
         <label class="field">
           <select id="att-status-filter">
             <option value="">${lang === 'ar' ? 'كل الحالات' : 'All statuses'}</option>
-            ${['present', 'late', 'absent', 'excused', 'remote'].map((s) => `<option value="${s}" ${state.statusFilter === s ? 'selected' : ''}>${ZenI18n.t('status.' + s)}</option>`).join('')}
+            ${['present', 'late', 'absent', 'excused', 'remote', 'rest'].map((s) => `<option value="${s}" ${state.statusFilter === s ? 'selected' : ''}>${s === 'rest' ? (lang === 'ar' ? 'راحة شهرية' : 'Monthly rest') : ZenI18n.t('status.' + s)}</option>`).join('')}
           </select>
         </label>
         <div class="actions">
@@ -115,7 +115,7 @@ window.ZenAttendance = (function () {
         { label: lang === 'ar' ? 'ساعات العمل' : 'Work Hrs', render: (a) => a.workMinutes ? (a.workMinutes / 60).toFixed(1) : '—' },
         { label: lang === 'ar' ? 'إضافي' : 'Overtime', render: (a) => a.overtimeMinutes ? a.overtimeMinutes + 'm' : '—' },
         { label: lang === 'ar' ? 'تأخير' : 'Late', render: (a) => a.lateMinutes ? a.lateMinutes + 'm' : '—' },
-        { label: ZenI18n.t('common.status'), render: (a) => UI.statusBadge(a.status) },
+        { label: ZenI18n.t('common.status'), render: (a) => a.status === 'rest' ? '<span class="badge success">' + (lang === 'ar' ? 'راحة شهرية' : 'Monthly rest') + '</span>' : UI.statusBadge(a.status) },
         { label: ZenI18n.t('common.actions'), sortable: false, render: (a) => `<div class="row-actions">
           <button class="btn sm ghost" data-edit="${a.id}">✎</button>
           <button class="btn sm ghost" data-del="${a.id}">🗑</button>
@@ -144,7 +144,7 @@ window.ZenAttendance = (function () {
         ${UI.formField({ label: ZenI18n.t('common.date'), name: 'date', type: 'date', value: rec?.date || U.today(), required: true })}
         ${UI.formField({ label: lang === 'ar' ? 'وقت الدخول' : 'Check In', name: 'checkIn', type: 'time', value: rec?.checkIn || '09:00' })}
         ${UI.formField({ label: lang === 'ar' ? 'وقت الخروج' : 'Check Out', name: 'checkOut', type: 'time', value: rec?.checkOut || '17:00' })}
-        ${UI.formField({ label: ZenI18n.t('common.status'), name: 'status', type: 'select', value: rec?.status || 'present', options: ['present', 'late', 'absent', 'excused', 'remote'].map((s) => ({ value: s, label: ZenI18n.t('status.' + s) })) })}
+        ${UI.formField({ label: ZenI18n.t('common.status'), name: 'status', type: 'select', value: rec?.status || 'present', options: ['present', 'late', 'absent', 'excused', 'remote', 'rest'].map((s) => ({ value: s, label: s === 'rest' ? (lang === 'ar' ? 'راحة شهرية' : 'Monthly rest') : ZenI18n.t('status.' + s) })) })}
         ${UI.formField({ label: lang === 'ar' ? 'ملاحظات' : 'Notes', name: 'notes', type: 'textarea', value: rec?.notes })}
       </form>
     `;
@@ -158,6 +158,20 @@ window.ZenAttendance = (function () {
           if (!form.checkValidity()) { form.reportValidity(); return; }
           const data = UI.readForm(form);
           if (!data.employeeId) { UI.toast(ZenI18n.t('common.required'), 'warning'); return; }
+          if (data.status === 'rest') {
+            const month = String(data.date || '').slice(0, 7);
+            const emp = S.getById('employees', data.employeeId);
+            const quota = window.ZenRestDays ? ZenRestDays.quota(emp) : 4;
+            const used = window.ZenRestDays ? ZenRestDays.used(data.employeeId, month, id) : 0;
+            const duplicateDate = S.findBy('attendance', r => r.employeeId === data.employeeId && r.date === data.date && r.status === 'rest' && r.id !== id).length > 0;
+            if (!duplicateDate && used >= quota) {
+              window.alert(lang === 'ar' ? 'تم استنفاد رصيد أيام الراحة لهذا الشهر.' : 'The monthly rest-day allowance has been exhausted.');
+              return;
+            }
+            data.checkIn = '';
+            data.checkOut = '';
+            data.notes = data.notes || (lang === 'ar' ? 'يوم راحة شهرية مرن' : 'Flexible monthly rest day');
+          }
           // Validate check-in/out
           if (data.checkIn && data.checkOut && data.checkOut < data.checkIn) {
             // Allow if overnight but warn
@@ -165,7 +179,7 @@ window.ZenAttendance = (function () {
           }
           const shift = S.getCollection('shifts').find((s) => s.id === S.getById('employees', data.employeeId)?.shiftId);
           let workMin = 0, lateMin = 0;
-          if (data.checkIn && data.checkOut) {
+          if (data.status !== 'rest' && data.checkIn && data.checkOut) {
             workMin = U.diffMinutes(data.checkIn, data.checkOut) - (shift?.breakMinutes || 60);
             const startMin = shift ? U.timeToMinutes(shift.startTime) : 540;
             const checkInMin = U.timeToMinutes(data.checkIn);
