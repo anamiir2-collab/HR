@@ -103,6 +103,8 @@ window.ZenFinanceModule = function (config) {
         { label: ZenI18n.t('common.type'), render: (r) => U.esc(r.type) },
         { label: ZenI18n.t('common.amount'), render: (r) => U.money(r.amount) },
         { label: ZenI18n.t('common.date'), render: (r) => U.date(r.effectiveDate) },
+        { label: lang === 'ar' ? 'الفترة الزمنية' : 'Financial period', render: (r) => { const p=S.getCollection('financePeriods').find(x=>x.id===r.periodId); return U.esc(p?p.name:'—'); } },
+        { label: lang === 'ar' ? 'تقريب 5 ج.م' : 'Round to 5 EGP', render: (r) => r.roundToFive ? '<span class="badge success">'+(lang==='ar'?'مفعّل':'On')+'</span>' : '<span class="badge gray">'+(lang==='ar'?'معطّل':'Off')+'</span>' },
         { label: ZenI18n.t('common.reason'), render: (r) => U.esc(r.reason || '—') },
         { label: lang === 'ar' ? 'الشهر' : 'Period', render: (r) => r.payrollPeriod ? U.monthLabel(r.payrollPeriod) : '—' },
         { label: ZenI18n.t('common.status'), render: (r) => UI.statusBadge(r.status) },
