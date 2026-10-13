@@ -176,7 +176,7 @@ window.ZenEmployees = (function () {
           <option value="none" ${emp?.restDaysMode === 'none' ? 'selected' : ''}>${lang === 'ar' ? 'بدون أيام راحة' : 'No rest days'}</option>
         </select></div>
         <label class="field"><span>${lang === 'ar' ? 'تواريخ الراحة (YYYY-MM-DD، افصل بفاصلة)' : 'Rest dates (YYYY-MM-DD, comma-separated)'}</span><textarea name="restDates" rows="2" placeholder="2026-10-01, 2026-10-15">${U.esc(Array.isArray(emp?.restDates) ? emp.restDates.join(', ') : (emp?.restDates || ''))}</textarea></label>
-        <label class="field"><span>${lang === 'ar' ? 'أرقام أيام الشهر للراحة (1–31)' : 'Rest day numbers each month (1–31)'}</span><input name="recurringRestDays" value="${U.esc(Array.isArray(emp?.recurringRestDays) ? emp.recurringRestDays.join(', ') : (emp?.recurringRestDays || ''))}" placeholder="1, 15"></label>
+        <label class="field"><span>${lang === 'ar' ? 'أرقام أيام الراحة: أيام الشهر (1–31) أو أيام الأسبوع (0=الأحد، 6=السبت)' : 'Rest day numbers: month days (1–31) or weekdays (0=Sun, 6=Sat)'}</span><input name="recurringRestDays" value="${U.esc(Array.isArray(emp?.recurringRestDays) ? emp.recurringRestDays.join(', ') : (emp?.recurringRestDays || ''))}" placeholder="1, 15"></label>
         <label class="field full"><span>${lang === 'ar' ? 'ملاحظات نظام العمل الخاص' : 'Flexible work-system notes'}</span><textarea name="workSystemNotes" rows="2">${U.esc(emp?.workSystemNotes || '')}</textarea></label>
         ${UI.formField({ label: ZenI18n.t('emp.hireDate'), name: 'hireDate', type: 'date', value: emp?.hireDate, required: true })}
         ${UI.formField({ label: ZenI18n.t('emp.contractStart'), name: 'contractStart', type: 'date', value: emp?.contractStart })}
@@ -247,13 +247,15 @@ window.ZenEmployees = (function () {
         const img = new Image();
         img.onerror = reject;
         img.onload = () => {
-          const max = 420, scale = Math.min(1, max / Math.max(img.width, img.height));
+          const max = 360, scale = Math.min(1, max / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.max(1, Math.round(img.width * scale));
           canvas.height = Math.max(1, Math.round(img.height * scale));
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.78));
+          let quality = 0.76, output = canvas.toDataURL('image/jpeg', quality);
+          while (output.length > 160000 && quality > 0.42) { quality -= 0.08; output = canvas.toDataURL('image/jpeg', quality); }
+          resolve(output);
         };
         img.src = reader.result;
       };
@@ -492,6 +494,11 @@ window.ZenEmployees = (function () {
       { label: ZenI18n.t('emp.employmentType'), value: (e) => ZenI18n.t('emp.' + e.employmentType) },
       { label: ZenI18n.t('emp.employmentStatus'), value: (e) => ZenI18n.t('status.' + e.employmentStatus) },
       { label: ZenI18n.t('emp.basicSalary'), value: (e) => e.basicSalary, type: 'money' },
+      { label: lang === 'ar' ? 'ساعات العمل الشهرية' : 'Monthly target hours', value: (e) => e.monthlyHours ?? '' },
+      { label: lang === 'ar' ? 'ساعات العمل اليومية' : 'Daily target hours', value: (e) => e.dailyHours ?? '' },
+      { label: lang === 'ar' ? 'نظام الراحة' : 'Rest-day system', value: (e) => e.restDaysMode || 'default' },
+      { label: lang === 'ar' ? 'تواريخ الراحة' : 'Rest dates', value: (e) => Array.isArray(e.restDates) ? e.restDates.join(', ') : (e.restDates || '') },
+      { label: lang === 'ar' ? 'ملاحظات نظام العمل' : 'Work-system notes', value: (e) => e.workSystemNotes || '' },
       { label: ZenI18n.t('emp.hireDate'), value: (e) => e.hireDate, type: 'date' },
       { label: ZenI18n.t('emp.phone'), value: (e) => e.phone || '' },
       { label: ZenI18n.t('emp.email'), value: (e) => e.email || '' },
