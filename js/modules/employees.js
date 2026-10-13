@@ -272,7 +272,7 @@ window.ZenEmployees = (function () {
     data.dailyHours = data.dailyHours === '' ? null : Number(data.dailyHours);
     data.restDaysMode = data.restDaysMode || 'default';
     data.restDates = String(data.restDates || '').split(/[\\n,;]+/).map(v => v.trim()).filter(v => /^\\d{4}-\\d{2}-\\d{2}$/.test(v));
-    data.recurringRestDays = String(data.recurringRestDays || '').split(/[\\s,;]+/).map(Number).filter(v => Number.isInteger(v) && v >= 1 && v <= 31);
+    data.recurringRestDays = String(data.recurringRestDays || '').split(/[\\s,;]+/).map(Number).filter(v => Number.isInteger(v) && (data.restDaysMode === 'weekly' ? v >= 0 && v <= 6 : v >= 1 && v <= 31));
     data.workSystemNotes = data.workSystemNotes || '';
     if (!data.name || !data.departmentId || !data.hireDate || !data.basicSalary) {
       UI.toast(ZenI18n.t('common.required'), 'warning');
