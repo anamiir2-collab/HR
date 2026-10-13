@@ -359,7 +359,9 @@ window.ZenPayroll = (function () {
           const localKey = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
           const cycleStart = cycle ? localKey(cycle.start) : ym + '-01';
           const cycleEnd = cycle ? localKey(cycle.end) : ym + '-31';
-          const attendanceRows = S.findBy('attendance', a => a.employeeId === emp.id && a.date >= cycleStart && a.date <= cycleEnd && ['present','late','remote'].includes(a.status));
+          const attendanceCoverage = S.findBy('attendance', a => a.employeeId === emp.id && a.date >= cycleStart && a.date <= cycleEnd);
+          const attendanceRows = attendanceCoverage.filter(a => ['present','late','remote'].includes(a.status));
+          const coveredDates = new Set(attendanceCoverage.map(a => a.date)).size;
           const workedMinutes = attendanceRows.reduce((sum, a) => sum + Math.max(0, Number(a.workMinutes) || 0), 0);
           const dailyHours = Math.max(0.5, Number(emp.dailyHours) || 8);
           const restMode = emp.restDaysMode || 'default';
@@ -382,7 +384,7 @@ window.ZenPayroll = (function () {
           const workedHours = workedMinutes / 60;
           const overtimeHours = attendanceRows.length ? Math.max(0, workedHours - targetHours) : 0;
           const expectedWorkDays = targetHours / dailyHours;
-          const coverageComplete = attendanceRows.length >= Math.max(1, Math.ceil(expectedWorkDays * 0.8));
+          const coverageComplete = coveredDates >= Math.max(1, Math.ceil(expectedWorkDays));
           const shortageHours = coverageComplete ? Math.max(0, targetHours - workedHours) : 0;
           const hourlyRate = targetHours > 0 ? Number(emp.basicSalary || 0) / targetHours : 0;
           const overtime = roundPayrollAmount('overtime', overtimeHours * hourlyRate * (Number(S.settings.overtimeRate) || 1.5));
