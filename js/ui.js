@@ -92,19 +92,26 @@ window.ZenUI = (function () {
   }
 
   function confirm({ title, message, confirmLabel, kind, onConfirm, onCancel }) {
+    // Normalize every destructive delete/remove confirmation in one place so
+    // all modules use the same clear wording and actions.
+    const isDelete = /حذف|delete|remove|إزالة/i.test(String(title || '') + ' ' + String(message || ''));
+    const dialogTitle = isDelete ? 'تأكيد الحذف' : (title || 'تأكيد');
+    const dialogMessage = isDelete ? 'هل أنت متأكد من الحذف؟' : (message || 'هل أنت متأكد؟');
+    const dialogConfirmLabel = isDelete ? 'تأكيد' : (confirmLabel || 'تأكيد');
+    const dialogCancelLabel = isDelete ? 'إلغاء' : ((window.ZenI18n && ZenI18n.t('common.cancel')) || 'إلغاء');
     const m = modal({
-      title: title || 'تأكيد',
+      title: dialogTitle,
       size: 'sm',
       body: `
         <div style="text-align:center">
           <div class="confirm-icon ${kind || 'warning'}">!</div>
-          <p style="margin:0;color:var(--gray-700);font-size:14px">${message || 'هل أنت متأكد؟'}</p>
+          <p style="margin:0;color:var(--gray-700);font-size:14px">${dialogMessage}</p>
         </div>
       `,
       footer: [
-        { label: (window.ZenI18n && ZenI18n.t('common.cancel')) || 'إلغاء', kind: 'secondary', onClick: (mm) => { mm.close(); if (onCancel) onCancel(); } },
+        { label: dialogCancelLabel, kind: 'secondary', onClick: (mm) => { mm.close(); if (onCancel) onCancel(); } },
         {
-          label: confirmLabel || 'تأكيد',
+          label: dialogConfirmLabel,
           kind: kind === 'danger' ? 'danger' : 'primary',
           onClick: (mm) => { mm.close(); if (onConfirm) onConfirm(); }
         }
