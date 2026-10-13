@@ -163,7 +163,7 @@ window.ZenShiftPlanner = (function () {
       const date = new Date(first.getFullYear(), first.getMonth(), d);
       const key = dateKey(date);
       const base = expectedFor(plan, date, selectedEmployee);
-      const order = orders.find(o => o.employeeId === selectedEmployee && o.date === key);
+      const order = window.ZenRestDays && ZenRestDays.isRestDate(selectedEmployee, key) ? null : orders.find(o => o.employeeId === selectedEmployee && o.date === key);
       const actualShift = order ? shiftById(order.shiftId) : base.shift;
       const isOff = order ? false : base.type === 'off';
       const isFriday = date.getDay() === 5;
