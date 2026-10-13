@@ -337,6 +337,15 @@ window.ZenEmployees = (function () {
     const contracts = S.findBy('contracts', (c) => c.employeeId === id);
     const perf = S.findBy('performance', (p) => p.employeeId === id).slice(-3);
     const loans = S.findBy('loans', (l) => l.employeeId === id);
+    const restMode = emp.restDaysMode || 'default';
+    const restDateList = Array.isArray(emp.restDates) ? emp.restDates : String(emp.restDates || '').split(/[\\n,;]+/).map(v => v.trim()).filter(Boolean);
+    const recurringList = Array.isArray(emp.recurringRestDays) ? emp.recurringRestDays : String(emp.recurringRestDays || '').split(/[\\s,;]+/).map(Number).filter(Number.isFinite);
+    const weekNames = lang === 'ar' ? ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const restDetails = restMode === 'dates' ? (restDateList.join('، ') || '—') :
+      restMode === 'monthlyDays' ? (recurringList.join('، ') || '—') :
+      restMode === 'weekly' ? (recurringList.map(n => weekNames[n]).filter(Boolean).join('، ') || '—') :
+      restMode === 'none' ? (lang === 'ar' ? 'لا توجد أيام راحة' : 'No rest days') :
+      (lang === 'ar' ? 'حسب النظام العام وجدول الورديات' : 'Company rules and shift plan');
 
     const body = `
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)">
@@ -363,6 +372,7 @@ window.ZenEmployees = (function () {
         ${detailItem(lang === 'ar' ? 'ساعات العمل الشهرية' : 'Monthly target hours', emp.monthlyHours ?? S.settings.monthlyWorkingHours)}
         ${detailItem(lang === 'ar' ? 'ساعات العمل اليومية' : 'Daily target hours', emp.dailyHours ?? '—')}
         ${detailItem(lang === 'ar' ? 'نظام الراحة' : 'Rest system', ({default:lang==='ar'?'النظام العام': 'Company/shift default',dates:lang==='ar'?'تواريخ محددة':'Specific dates',monthlyDays:lang==='ar'?'أيام شهرية متكررة':'Recurring monthly days',weekly:lang==='ar'?'أيام أسبوعية مخصصة':'Custom weekdays',none:lang==='ar'?'بدون راحة':'No rest days'})[emp.restDaysMode || 'default'])}
+        ${detailItem(lang === 'ar' ? 'تفاصيل أيام الراحة' : 'Rest-day details', restDetails)}
         ${detailItem(ZenI18n.t('emp.phone'), emp.phone || '—')}
         ${detailItem(ZenI18n.t('emp.email'), emp.email || '—')}
         ${detailItem(ZenI18n.t('emp.address'), emp.address || '—')}
