@@ -74,7 +74,7 @@ window.ZenStore = (function () {
       enabled: false,
       increment: 5,
       scope: 'individual',        // 'individual' | 'total' | 'both'
-      deductionsPolicy: 'down',   // 'down' | 'up' | 'none'
+      deductionsPolicy: 'down',   // 'down' | 'up' | 'none' (legacy policy; item rounding uses nearest-five)
       applyTo: {
         basicSalary: true,
         allowances: true,
