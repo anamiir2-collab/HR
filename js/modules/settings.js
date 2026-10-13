@@ -165,6 +165,8 @@ window.ZenSettings = (function () {
       { id: 'penalties', ar: 'الجزاءات', en: 'Penalties', isDeduction: true },
       { id: 'advances', ar: 'السلف والأقساط', en: 'Advances & Installments', isDeduction: true },
       { id: 'insurance', ar: 'التأمينات', en: 'Insurance', isDeduction: true },
+      { id: 'tax', ar: 'الضريبة', en: 'Tax', isDeduction: true },
+      { id: 'otherDeductions', ar: 'خصومات أخرى', en: 'Other Deductions', isDeduction: true },
     ];
 
     // Verification examples
@@ -183,14 +185,14 @@ window.ZenSettings = (function () {
         <div class="card-head">
           <div>
             <h3>${lang === 'ar' ? 'تقريب المبالغ المالية' : 'Financial Amount Rounding'}</h3>
-            <p>${lang === 'ar' ? 'تقريب المبالغ الموجبة المؤهلة للأسفل إلى أقرب مضاعف لـ 5 جنيه' : 'Round eligible positive amounts DOWN to the nearest multiple of 5 EGP'}</p>
+            <p>${lang === 'ar' ? 'تقريب المبالغ المؤهلة إلى أقرب مضاعف لـ 5 جنيه' : 'Round eligible amounts to the nearest multiple of 5 EGP'}</p>
           </div>
         </div>
 
         <div class="alert ${cfg.enabled ? 'warning' : 'info'} mb-16">
           <b>${lang === 'ar' ? 'الحالة الحالية:' : 'Current status:'}</b>
           ${cfg.enabled
-            ? (lang === 'ar' ? 'مفعّل — يتم تقريب المبالغ للأسفل' : 'ON — amounts are rounded down')
+            ? (lang === 'ar' ? 'مفعّل — يتم تقريب المبالغ لأقرب 5 جنيه' : 'ON — amounts are rounded to nearest 5 EGP')
             : (lang === 'ar' ? 'معطّل — تُحفظ المبالغ الأصلية بدون تقريب' : 'OFF — original amounts preserved without rounding')}
         </div>
 
@@ -246,7 +248,7 @@ window.ZenSettings = (function () {
       </div>
 
       <div class="card mb-16">
-        <div class="card-head"><div><h3>${lang === 'ar' ? 'أمثلة التقريب (للأسفل إلى أقرب 5 جنيه)' : 'Rounding Examples (down to nearest 5 EGP)'}</h3></div></div>
+        <div class="card-head"><div><h3>${lang === 'ar' ? 'أمثلة التقريب (لأقرب 5 جنيه)' : 'Rounding Examples (nearest 5 EGP)'}</h3></div></div>
         <div class="table-scroll"><table class="data">
           <thead><tr>
             <th>${lang === 'ar' ? 'المبلغ الأصلي' : 'Original Amount'}</th>
@@ -263,7 +265,7 @@ window.ZenSettings = (function () {
         <div class="alert info">
           <ul style="margin:0;padding-inline-start:20px;line-height:1.8;font-size:13px">
             <li>${lang === 'ar' ? 'الافتراضي معطّل. عند التعطيل تُحفظ المبالغ الأصلية بدون تقريب.' : 'Default is OFF. When OFF, original amounts are preserved without rounding.'}</li>
-            <li>${lang === 'ar' ? 'عند التفعيل، تُقرب المبالغ الموجبة المؤهلة للأسفل إلى أقرب مضاعف لـ 5 جنيه.' : 'When ON, eligible positive amounts are rounded DOWN to the nearest multiple of 5 EGP.'}</li>
+            <li>${lang === 'ar' ? 'عند التفعيل، تُقرب المبالغ المؤهلة إلى أقرب مضاعف لـ 5 جنيه.' : 'When ON, eligible amounts are rounded to the nearest multiple of 5 EGP.'}</li>
             <li>${lang === 'ar' ? '<b>لا تُستبدل المبالغ الأصلية أبداً</b> — تُحفظ القيمة الأصلية والقيمة المُقرّبة والفرق.' : '<b>Original amounts are never overwritten</b> — original, rounded, and difference are all retained.'}</li>
             <li>${lang === 'ar' ? 'تقريب البنود الفردية قد يختلف عن تقريب الإجمالي النهائي فقط — اختر النطاق المناسب لسياسة الشركة.' : 'Rounding individual items may differ from rounding only the final total — choose the scope that matches company policy.'}</li>
             <li>${lang === 'ar' ? 'الخصومات تتبع سياسة منفصلة: للأسفل (يقلل الخصم) أو للأعلى (يزيد الخصم) أو بدون تقريب.' : 'Deductions follow a separate policy: down (reduces deduction), up (increases deduction), or no rounding.'}</li>
