@@ -14,13 +14,29 @@ window.ZenShiftPlanner = (function () {
   function planFor(employeeId) { return S.getCollection('shiftPlans').find(p => p.employeeId === employeeId) || null; }
   function effectivePlanFor(employeeId) { const saved=planFor(employeeId); if(saved)return saved; const emp=S.getById('employees',employeeId); return emp&&emp.shiftId?{employeeId,mode:'fixed',fixedShiftId:emp.shiftId,anchorDate:dateKey(new Date())}:null; }
   function shiftById(id) { return S.getById('shifts', id); }
+  function employeeRestDay(employeeId, date) {
+    const emp = S.getById('employees', employeeId);
+    if (!emp) return false;
+    const mode = emp.restDaysMode || 'default';
+    const key = dateKey(date);
+    if (mode === 'none') return false;
+    if (mode === 'dates') return (Array.isArray(emp.restDates) ? emp.restDates : String(emp.restDates || '').split(/[\\n,;]+/)).includes(key);
+    if (mode === 'monthlyDays') return (Array.isArray(emp.recurringRestDays) ? emp.recurringRestDays : String(emp.recurringRestDays || '').split(/[\\s,;]+/).map(Number)).includes(date.getDate());
+    if (mode === 'weekly') return (Array.isArray(emp.recurringRestDays) ? emp.recurringRestDays : String(emp.recurringRestDays || '').split(/[\\s,;]+/).map(Number)).includes(date.getDay());
+    return false;
+  }
+  function hasCustomRest(employeeId) { const emp=S.getById('employees',employeeId); return !!emp && !!emp.restDaysMode && emp.restDaysMode !== 'default'; }
   function isFixedWorkday(shift, date) { const rest=(S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays)||[]; return !!(shift && shift.workingDays && shift.workingDays.includes(date.getDay()) && !rest.includes(date.getDay())); }
 
-  function expectedFor(plan, date) {
+  function expectedFor(plan, date, employeeId) {
+    if (employeeId && employeeRestDay(employeeId, date)) return { type: 'off', shift: null, label: ZenI18n.lang === 'ar' ? 'راحة مخصصة' : 'Custom rest day' };
     if (!plan) return { type: 'unassigned', shift: null, label: ZenI18n.lang === 'ar' ? 'غير محدد' : 'Unassigned' };
     if (plan.mode === 'fixed') {
       const shift = shiftById(plan.fixedShiftId);
-      return isFixedWorkday(shift, date)
+      const emp=S.getById('employees',employeeId);
+      const custom=!!(emp && emp.restDaysMode && emp.restDaysMode !== 'default');
+      const works = custom ? (emp.restDaysMode === 'none' || !!shift) : isFixedWorkday(shift, date);
+      return works
         ? { type: 'work', shift, label: shiftLabel(shift, ZenI18n.lang) }
         : { type: 'off', shift: null, label: ZenI18n.lang === 'ar' ? 'إجازة أسبوعية' : 'Weekly off' };
     }
@@ -144,7 +160,7 @@ window.ZenShiftPlanner = (function () {
     for (let d=1; d<=daysInMonth; d++) {
       const date = new Date(first.getFullYear(), first.getMonth(), d);
       const key = dateKey(date);
-      const base = expectedFor(plan, date);
+      const base = expectedFor(plan, date, selectedEmployee);
       const order = orders.find(o => o.employeeId === selectedEmployee && o.date === key);
       const actualShift = order ? shiftById(order.shiftId) : base.shift;
       const isOff = order ? false : base.type === 'off';
@@ -163,7 +179,7 @@ window.ZenShiftPlanner = (function () {
     const key = dateKey(date);
     const order = S.getCollection('assignmentOrders').find(o => o.employeeId === employeeId && o.date === key);
     const plan = effectivePlanFor(employeeId);
-    const base = expectedFor(plan, date);
+    const base = expectedFor(plan, date, employeeId);
     if (order) return { type:'order', shift:shiftById(order.shiftId), order, mode:'assignment' };
     return { type:base.type, shift:base.shift, order:null, mode:plan ? plan.mode : 'none' };
   }
@@ -175,7 +191,7 @@ window.ZenShiftPlanner = (function () {
     const roster=employees.map(e=>({employee:e,...actualFor(e.id,date)})).filter(x=>
       selected.shift ? x.shift && x.shift.id===selected.shift.id : !x.shift && x.type==='off'
     );
-    const rows=roster.map(x=>'<tr><td>'+U.esc(ar?x.employee.name:(x.employee.nameEn||x.employee.name))+'</td><td>'+U.esc(x.employee.id)+'</td><td>'+U.esc(x.shift?shiftLabel(x.shift,lang):(ar?'إجازة':'Off'))+'</td><td><span class="badge '+(x.mode==='fixed'?'info':x.mode==='rotating'?'success':'warning')+'">'+U.esc(x.order?t('أمر تكليف','Assignment order'):x.mode==='fixed'?t('ثابتة','Fixed'):x.mode==='rotating'?t('دورية','Rotating'):t('غير محددة','Unassigned'))+'</span></td></tr>').join('');
+    const rows=roster.map(x=>'<tr><td><span class="employee-roster-cell">'+(x.employee.profileImage?'<img class="employee-mini-photo" src="'+U.esc(x.employee.profileImage)+'" alt="">':'<span class="employee-mini-photo employee-mini-placeholder">'+U.esc(U.initials(x.employee.name))+'</span>')+'<span>'+U.esc(ar?x.employee.name:(x.employee.nameEn||x.employee.name))+'</span></span></td><td>'+U.esc(x.employee.id)+'</td><td>'+U.esc(x.shift?shiftLabel(x.shift,lang):(ar?'إجازة':'Off'))+'</td><td><span class="badge '+(x.mode==='fixed'?'info':x.mode==='rotating'?'success':'warning')+'">'+U.esc(x.order?t('أمر تكليف','Assignment order'):x.mode==='fixed'?t('ثابتة','Fixed'):x.mode==='rotating'?t('دورية','Rotating'):t('غير محددة','Unassigned'))+'</span></td></tr>').join('');
     UI.modal({title:t('كشف الوردية — ','Shift roster — ')+dateValue,size:'lg',body:'<div class="table-scroll"><table class="data"><thead><tr><th>'+t('الموظف','Employee')+'</th><th>'+t('الرقم','ID')+'</th><th>'+t('الوردية','Shift')+'</th><th>'+t('نوع التخصيص','Assignment type')+'</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">'+t('لا يوجد موظفون في هذه الوردية','No employees assigned to this shift')+'</td></tr>')+'</tbody></table></div>',footer:[
       {label:t('إغلاق','Close'),kind:'secondary',onClick:m=>m.close()},
       {label:t('إنشاء أمر تكليف','Create assignment order'),kind:'primary',onClick:m=>{m.close();showOrderForm(dateValue);}}
@@ -190,7 +206,7 @@ window.ZenShiftPlanner = (function () {
     const date=localDate(dateValue);
     const rows=S.getCollection('employees').filter(e=>(e.employmentStatus==='active'||e.employmentStatus==='on_leave')&&(!q||String(e.name||'').toLowerCase().includes(q)||String(e.nameEn||'').toLowerCase().includes(q)||String(e.id||'').toLowerCase().includes(q))).map(e=>{
       const a=actualFor(e.id,date);
-      return '<tr><td>'+U.esc(ar?e.name:(e.nameEn||e.name))+'</td><td>'+U.esc(e.id)+'</td><td>'+U.esc(a.shift?shiftLabel(a.shift,lang):(a.type==='off'?t('إجازة','Off'):t('غير محددة','Unassigned')) )+'</td><td>'+t(a.mode==='fixed'?'ثابتة':a.mode==='rotating'?'دورية':a.mode==='assignment'?'أمر تكليف':'غير محددة',a.mode==='fixed'?'Fixed':a.mode==='rotating'?'Rotating':a.mode==='assignment'?'Assignment order':'Unassigned')+'</td></tr>';
+      return '<tr><td><span class="employee-roster-cell">'+(e.profileImage?'<img class="employee-mini-photo" src="'+U.esc(e.profileImage)+'" alt="">':'<span class="employee-mini-photo employee-mini-placeholder">'+U.esc(U.initials(e.name))+'</span>')+'<span>'+U.esc(ar?e.name:(e.nameEn||e.name))+'</span></span></td><td>'+U.esc(e.id)+'</td><td>'+U.esc(a.shift?shiftLabel(a.shift,lang):(a.type==='off'?t('إجازة','Off'):t('غير محددة','Unassigned')) )+'</td><td>'+t(a.mode==='fixed'?'ثابتة':a.mode==='rotating'?'دورية':a.mode==='assignment'?'أمر تكليف':'غير محددة',a.mode==='fixed'?'Fixed':a.mode==='rotating'?'Rotating':a.mode==='assignment'?'Assignment order':'Unassigned')+'</td></tr>';
     }).join('');
     root.innerHTML='<div class="table-scroll"><table class="data"><thead><tr><th>'+t('الموظف','Employee')+'</th><th>'+t('الرقم','ID')+'</th><th>'+t('الوردية في التاريخ المحدد','Shift on selected date')+'</th><th>'+t('المصدر','Source')+'</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">'+t('لا توجد نتائج','No results')+'</td></tr>')+'</tbody></table></div>';
   }
