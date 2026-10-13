@@ -151,6 +151,20 @@ window.ZenLeaves = (function () {
           if (!data.employeeId) { UI.toast(ZenI18n.t('common.required'), 'warning'); return; }
           if (data.endDate < data.startDate) { UI.toast(lang === 'ar' ? 'تاريخ النهاية قبل البداية' : 'End date before start date', 'error'); return; }
           data.days = U.daysInclusive(data.startDate, data.endDate);
+          // Annual, casual/emergency and unpaid leave require the monthly flexible-rest quota to be exhausted first.
+          if (['annual', 'emergency', 'unpaid'].includes(data.type)) {
+            const leaveMonth = String(data.startDate || '').slice(0, 7);
+            const remaining = window.ZenRestDays
+              ? ZenRestDays.remaining(data.employeeId, leaveMonth)
+              : Math.max(0, 4 - S.findBy('attendance', r => r.employeeId === data.employeeId && r.status === 'rest' && String(r.date || '').slice(0, 7) === leaveMonth).length);
+            if (remaining > 0) {
+              const message = lang === 'ar'
+                ? 'لا يمكنك تقديم إجازة، يجب عليك استنفاد أيام الراحة المتبقية لديك أولاً (المتبقي: ' + remaining + ' أيام)'
+                : 'You cannot request leave until you use all monthly rest days first (remaining: ' + remaining + ' days).';
+              window.alert(message);
+              return;
+            }
+          }
           // Check overlap
           const overlaps = S.findBy('leaves', (l) =>
             l.id !== id && l.employeeId === data.employeeId && l.status === 'approved' &&
