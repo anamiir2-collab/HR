@@ -40,7 +40,7 @@ window.ZenUI = (function () {
           <h3>${U.esc(title || '')}</h3>
           ${subtitle ? `<p>${U.esc(subtitle)}</p>` : ''}
         </div>
-        <button class="icon-btn" data-close="1" aria-label="إغلاق">×</button>
+        <button type="button" class="icon-btn" data-close="1" aria-label="إغلاق">×</button>
       </div>
       <div class="modal-body"></div>
       ${footer ? `<div class="modal-foot"></div>` : ''}
@@ -55,6 +55,7 @@ window.ZenUI = (function () {
       else if (Array.isArray(footer)) {
         footer.forEach((btn) => {
           const b = document.createElement('button');
+          b.type = 'button';
           b.className = 'btn ' + (btn.kind || 'secondary');
           b.textContent = btn.label;
           b.onclick = () => { if (btn.onClick) btn.onClick(m, bodyEl); };
@@ -67,6 +68,8 @@ window.ZenUI = (function () {
     root.appendChild(back);
 
     function close() {
+      if (!back.isConnected || back.dataset.closing === '1') return;
+      back.dataset.closing = '1';
       back.style.opacity = '0';
       back.style.transition = 'opacity .15s';
       setTimeout(() => {
@@ -74,6 +77,11 @@ window.ZenUI = (function () {
         if (typeof onClose === 'function') onClose();
       }, 150);
     }
+
+    // Footer callbacks historically receive the modal element as their first
+    // argument and call mm.close(). Expose close() on that element so these
+    // callbacks do not throw TypeError and interrupt save/delete workflows.
+    m.close = close;
 
     back.addEventListener('click', (e) => {
       if (e.target === back) close();
