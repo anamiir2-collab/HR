@@ -106,11 +106,20 @@
     });
   }
 
+  function setVisibleView(view) {
+    const gate = document.getElementById('gate-view');
+    const app = document.getElementById('app');
+    // Hide both first so no intermediate frame can show both screens.
+    if (gate) gate.hidden = true;
+    if (app) app.hidden = true;
+    if (view === 'app' && app) app.hidden = false;
+    if (view === 'gate' && gate) gate.hidden = false;
+  }
+
   function showApp() {
     closeNotifDrawer();
     closeMenu();
-    document.getElementById('gate-view').hidden = true;
-    document.getElementById('app').hidden = false;
+    setVisibleView('app');
     buildNav();
     updateUserInfo();
     // Auto-initialize demo data on first run if not already initialized.
@@ -132,8 +141,7 @@
   function showGate() {
     closeNotifDrawer();
     closeMenu();
-    document.getElementById('gate-view').hidden = false;
-    document.getElementById('app').hidden = true;
+    setVisibleView('gate');
     const form = document.getElementById('gate-form');
     if (form) {
       form.onsubmit = (e) => {
@@ -510,6 +518,8 @@
   }
 
   function init() {
+    // Fail closed during startup: never render the gate and dashboard together.
+    setVisibleView('none');
     // Apply language
     I18n.apply();
     // Wire global actions
