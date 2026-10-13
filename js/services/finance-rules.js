@@ -14,17 +14,15 @@ window.ZenFinanceRules = (function () {
     const end=new Date(y,m,clampDay(y,m,cfg.endDay),23,59,59,999);
     return {start,end};
   }
-  function overlaps(startA,endA,startB,endB) {
-    const a=new Date(startA+'T00:00:00'), b=new Date(endA+'T23:59:59'), c=new Date(startB), d=new Date(endB);
-    return a<=d && b>=c;
-  }
+  function localKey(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function overlaps(startA,endA,startB,endB) { return String(startA)<=String(endB) && String(endA)>=String(startB); }
   function applies(record, monthKey) {
     if(!record||record.status!=='active') return false;
     const cycle=cycleRange(monthKey); if(!cycle) return false;
     const periods=ZenStore.getCollection('financePeriods');
     if(record.periodId) {
       const p=periods.find(x=>x.id===record.periodId);
-      return !!(p&&p.startDate&&p.endDate&&overlaps(p.startDate,p.endDate,cycle.start.toISOString().slice(0,10),cycle.end.toISOString().slice(0,10)));
+      return !!(p&&p.startDate&&p.endDate&&overlaps(p.startDate,p.endDate,localKey(cycle.start),localKey(cycle.end)));
     }
     if(!record.effectiveDate) return false;
     const d=new Date(record.effectiveDate+'T12:00:00');
