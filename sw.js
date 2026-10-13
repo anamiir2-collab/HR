@@ -1,5 +1,5 @@
 // AGRIMASTERS HR Service Worker
-const CACHE_NAME = "agrimasters-hr-v2.1.2";
+const CACHE_NAME = "agrimasters-hr-v2.1.3";
 const CORE_ASSETS = [
   "./",
   "./index.html",
