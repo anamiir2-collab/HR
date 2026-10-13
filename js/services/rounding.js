@@ -69,8 +69,8 @@ window.ZenRounding = (function () {
     ZenStore.saveSettings();
   }
 
-  /** Round an amount DOWN to the nearest multiple of `increment`.
-   *  Examples with increment=5: 1523→1520, 1537→1535, 1528→1525, 1530→1530, 15237→15235, 15239→15235, 15240→15240
+  /** Round an amount to the nearest multiple of `increment`.
+   *  Examples with increment=5: 2522→2520, 2524→2525, 1528→1530, 1530→1530, 15237→15235, 15239→15240, 15240→15240
    *  Negative amounts: returns the amount unchanged (we only round eligible positive amounts).
    *  Zero: returns 0.
    */
@@ -79,7 +79,7 @@ window.ZenRounding = (function () {
     if (increment === 0) return amount;
     const v = Number(amount);
     if (!isFinite(v) || v <= 0) return v < 0 ? v : 0;
-    return Math.floor(v / increment) * increment;
+    return Math.round(v / increment) * increment;
   }
 
   /** Round an amount UP to the nearest multiple of `increment`. */
@@ -104,7 +104,7 @@ window.ZenRounding = (function () {
   function applyToAmount(amount, category, opts) {
     const cfg = (opts && opts.settings) || getSettings();
     const original = Number(amount) || 0;
-    const isDeduction = ['deductions', 'penalties', 'advances', 'insurance'].includes(category);
+    const isDeduction = ['deductions', 'penalties', 'advances', 'insurance', 'tax', 'otherDeductions'].includes(category);
     // Check if category is enabled
     const categoryEnabled = cfg.applyTo[category] !== false;
     if (!cfg.enabled || !categoryEnabled || original <= 0) {
@@ -139,7 +139,7 @@ window.ZenRounding = (function () {
     const result = { items: [], totals: {} };
     let originalGross = 0, roundedGross = 0;
     let originalDeductions = 0, roundedDeductions = 0;
-    const deductionCategories = ['deductions', 'penalties', 'advances', 'insurance'];
+    const deductionCategories = ['deductions', 'penalties', 'advances', 'insurance', 'tax', 'otherDeductions'];
 
     items.forEach((item) => {
       const original = Number(item.amount) || 0;
@@ -221,7 +221,7 @@ window.ZenRounding = (function () {
       { input: 1528, expected: 1525 },
       { input: 1530, expected: 1530 },
       { input: 15237, expected: 15235 },
-      { input: 15239, expected: 15235 },
+      { input: 15239, expected: 15240 },
       { input: 15240, expected: 15240 },
       { input: 0, expected: 0 },
       { input: 3, expected: 0 },
