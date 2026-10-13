@@ -24,6 +24,7 @@ window.ZenShifts = (function () {
         </div>
       </div>
       <div class="grid-auto" id="sh-grid"></div>
+      <div id="shift-planner" class="mt-16"></div>
     `;
 
     document.getElementById('sh-add').onclick = () => showForm();
@@ -31,9 +32,7 @@ window.ZenShifts = (function () {
     const grid = document.getElementById('sh-grid');
     if (shifts.length === 0) {
       grid.innerHTML = UI.empty('∅', ZenI18n.t('common.empty'), '');
-      return;
-    }
-
+    } else {
     grid.innerHTML = shifts.map((s) => {
       const count = employees.filter((e) => e.shiftId === s.id && (e.employmentStatus === 'active' || e.employmentStatus === 'on_leave')).length;
       const days = s.workingDays.map((d) => U.dayName(d, lang).substring(0, 3)).join('، ');
@@ -64,6 +63,8 @@ window.ZenShifts = (function () {
 
     grid.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => showForm(b.dataset.edit));
     grid.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => del(b.dataset.del));
+    }
+    if (window.ZenShiftPlanner) ZenShiftPlanner.render();
   }
 
   function showForm(id) {
