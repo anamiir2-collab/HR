@@ -19,6 +19,7 @@ window.ZenShiftPlanner = (function () {
     if (!emp) return false;
     const mode = emp.restDaysMode || 'default';
     const key = dateKey(date);
+    if (window.ZenRestDays && ZenRestDays.isRestDate(employeeId, key)) return true;
     if (mode === 'none') return false;
     if (mode === 'dates') return (Array.isArray(emp.restDates) ? emp.restDates : String(emp.restDates || '').split(/[\\n,;]+/)).includes(key);
     if (mode === 'monthlyDays') return (Array.isArray(emp.recurringRestDays) ? emp.recurringRestDays : String(emp.recurringRestDays || '').split(/[\\s,;]+/).map(Number)).includes(date.getDate());
@@ -29,6 +30,7 @@ window.ZenShiftPlanner = (function () {
   function isFixedWorkday(shift, date) { const rest=(S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays)||[]; return !!(shift && shift.workingDays && shift.workingDays.includes(date.getDay()) && !rest.includes(date.getDay())); }
 
   function expectedFor(plan, date, employeeId) {
+    if (employeeId && window.ZenRestDays && ZenRestDays.isRestDate(employeeId, dateKey(date))) return { type: 'off', shift: null, label: ZenI18n.lang === 'ar' ? 'راحة شهرية' : 'Monthly rest' };
     if (employeeId && employeeRestDay(employeeId, date)) return { type: 'off', shift: null, label: ZenI18n.lang === 'ar' ? 'راحة مخصصة' : 'Custom rest day' };
     if (!plan) return { type: 'unassigned', shift: null, label: ZenI18n.lang === 'ar' ? 'غير محدد' : 'Unassigned' };
     if (plan.mode === 'fixed') {
@@ -177,6 +179,7 @@ window.ZenShiftPlanner = (function () {
 
   function actualFor(employeeId, date) {
     const key = dateKey(date);
+    if (window.ZenRestDays && ZenRestDays.isRestDate(employeeId, key)) return { type:'off', shift:null, order:null, mode:'monthly-rest' };
     const order = S.getCollection('assignmentOrders').find(o => o.employeeId === employeeId && o.date === key);
     const plan = effectivePlanFor(employeeId);
     const base = expectedFor(plan, date, employeeId);
