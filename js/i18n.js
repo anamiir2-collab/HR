@@ -40,6 +40,7 @@ window.ZenI18n = (function () {
     'recruitment': { ar: 'التوظيف', en: 'Recruitment' },
     'reports': { ar: 'التقارير', en: 'Reports' },
     'settings': { ar: 'الإعدادات', en: 'Settings' },
+    'centralSettings': { ar: 'إعدادات الرواتب والورديات', en: 'Payroll & Shift Settings' },
     // AGRIMASTERS HR v2 — new module labels
     'fingerprint': { ar: 'البصمة واستيراد الحضور', en: 'Fingerprint Import' },
     'disciplinary': { ar: 'الجزاءات والتأديب', en: 'Disciplinary Actions' },
