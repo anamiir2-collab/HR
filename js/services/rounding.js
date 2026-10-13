@@ -1,7 +1,7 @@
 /* ============================================================
    AGRIMASTERS HR — Financial Rounding Service
    Shared utility for rounding eligible positive financial amounts
-   DOWN to the nearest multiple of 5 EGP (configurable increment).
+   to the nearest multiple of 5 EGP (configurable increment).
 
    Rules:
    - Default OFF. When OFF, original amounts are preserved.
@@ -47,6 +47,8 @@ window.ZenRounding = (function () {
       penalties: true,
       advances: true,
       insurance: false,
+      tax: false,
+      otherDeductions: false,
     },
   };
 
@@ -95,11 +97,8 @@ window.ZenRounding = (function () {
    *  Returns { original, rounded, difference, applied }.
    *  - If rounding is disabled, rounded === original, difference === 0, applied === false.
    *  - If the category is not in applyTo (or applyTo[category] is false), no rounding.
-   *  - For earnings categories: always rounds DOWN.
-   *  - For deduction categories: respects deductionsPolicy ('down' | 'up' | 'none').
-   *    'down' reduces the deduction (favourable to employee).
-   *    'up' increases the deduction (less favourable — must be explicitly chosen).
-   *    'none' skips rounding for deductions.
+   *  - All enabled categories use nearest-increment rounding.
+   *  - Category toggles decide which components are rounded.
    */
   function applyToAmount(amount, category, opts) {
     const cfg = (opts && opts.settings) || getSettings();
