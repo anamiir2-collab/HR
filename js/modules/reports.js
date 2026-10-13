@@ -161,7 +161,7 @@ window.ZenReports = (function () {
       title = lang === 'ar' ? 'تقرير المرتبات' : 'Payroll Report';
       rows = S.getCollection('payroll');
       columns = [
-        { label: ZenI18n.t('common.employee'), render: (p) => { const e = empMap[p.employeeId]; return e ? U.esc(e.name) : p.employeeId; } },
+        { label: ZenI18n.t('common.employee'), render: (p) => { const e = empMap[p.employeeId]; return e ? `<span class="employee-avatar-cell">${e.profileImage ? `<img class="employee-mini-photo" src="${U.esc(e.profileImage)}" alt="">` : `<span class="employee-mini-photo employee-mini-placeholder">${U.esc(U.initials(e.name))}</span>`}<span>${U.esc(lang === 'ar' ? e.name : (e.nameEn || e.name))}</span></span>` : U.esc(p.employeeId); } },
         { label: lang === 'ar' ? 'الشهر' : 'Period', render: (p) => U.monthLabel(p.period) },
         { label: lang === 'ar' ? 'الأساسي' : 'Basic', render: (p) => U.money(p.basicSalary) },
         { label: lang === 'ar' ? 'صافي' : 'Net', render: (p) => U.money(p.netSalary) },
