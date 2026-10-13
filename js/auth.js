@@ -25,14 +25,25 @@ window.ZenAuth = (function () {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY);
       if (!raw) return false;
-      const s = JSON.parse(raw);
-      if (!s || !s.ts) return false;
-      if (Date.now() - s.ts > SESSION_TTL) {
+
+      const session = JSON.parse(raw);
+      const timestamp = session && Number(session.ts);
+      if (!session || !Number.isFinite(timestamp) || timestamp <= 0) {
+        sessionStorage.removeItem(SESSION_KEY);
+        return false;
+      }
+
+      const age = Date.now() - timestamp;
+      if (age < 0 || age >= SESSION_TTL) {
         sessionStorage.removeItem(SESSION_KEY);
         return false;
       }
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      // If session storage is unavailable or the saved value is invalid,
+      // fail closed and show the access gate.
+      return false;
+    }
   }
 
   function currentUser() {
