@@ -357,8 +357,10 @@ window.ZenPayroll = (function () {
           if (emp.hireDate > ym + '-28') return;
           const basic = roundPayrollAmount('basicSalary', emp.basicSalary);
           // Sum applicable allowances/rewards/etc for current month and round enabled components.
-          const allowances = roundPayrollAmount('allowances', S.findBy('allowances', (a) => a.employeeId === emp.id && a.status === 'active').reduce((s, a) => s + a.amount, 0));
-          const rewards = roundPayrollAmount('bonuses', S.findBy('rewards', (r) => r.employeeId === emp.id && r.status === 'active').reduce((s, r) => s + r.amount, 0));
+          const allowanceItems = S.findBy('allowances', (a) => a.employeeId === emp.id && ZenFinanceRules.applies(a, ym));
+          const allowances = roundPayrollAmount('allowances', allowanceItems.reduce((sum, a) => sum + ZenFinanceRules.roundItem(a, a.amount), 0));
+          const rewardItems = S.findBy('rewards', (r) => r.employeeId === emp.id && ZenFinanceRules.applies(r, ym));
+          const rewards = roundPayrollAmount('bonuses', rewardItems.reduce((sum, r) => sum + ZenFinanceRules.roundItem(r, r.amount), 0));
           const deductions = roundPayrollAmount('deductions', S.findBy('deductions', (d) => d.employeeId === emp.id && d.status === 'active').reduce((s, d) => s + d.amount, 0));
           const penalties = roundPayrollAmount('penalties', S.findBy('penalties', (p) => p.employeeId === emp.id && p.status === 'active').reduce((s, p) => s + p.amount, 0));
           const insuranceEmp = roundPayrollAmount('insurance', Math.round(basic * (S.settings.insuranceEmployeeRate / 100)));
