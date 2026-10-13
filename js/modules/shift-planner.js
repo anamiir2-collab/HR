@@ -73,6 +73,8 @@ window.ZenShiftPlanner = (function () {
         <div class="card-head"><div><h3>${text('التقويم الشهري','Monthly shift calendar')}</h3><p class="muted">${text('أيام الجمعة والعطلات يمكن تكليف الموظف بالعمل فيها بأمر تكليف موثق.','Fridays and holidays can be worked through a documented assignment order.')}</p></div></div>
         <div class="toolbar"><label class="field"><span>${text('الشهر','Month')}</span><input id="sp-month" type="month" value="${selectedMonth}"></label><div class="spacer"></div><button class="btn secondary" id="sp-order">${text('＋ أمر تكليف','＋ Assignment order')}</button></div>
         <div id="sp-calendar" class="sp-calendar-wrap"></div>
+        <div class="toolbar mt-16"><label class="field"><span>${text('بحث عن موظف في الورديات','Search employee shifts')}</span><input id="sp-roster-search" type="search" placeholder="${text('اسم الموظف أو الرقم الوظيفي','Employee name or ID')}"></label><label class="field"><span>${text('التاريخ','Date')}</span><input id="sp-roster-date" type="date" value="${dateKey(new Date())}"></label></div>
+        <div id="sp-roster-results"></div>
       </section>
       <section class="card shift-planner-card mt-16">
         <div class="card-head"><div><h3>${text('أوامر التكليف','Assignment orders')}</h3><p class="muted">${text('تظهر هنا الوردية البديلة والسبب والتاريخ لكل تكليف.','Alternative shift, date and reason are recorded for each order.')}</p></div></div>
