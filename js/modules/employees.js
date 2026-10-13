@@ -168,6 +168,7 @@ window.ZenEmployees = (function () {
         </div>
         <div class="field"><span>${lang === 'ar' ? 'ساعات العمل الشهرية المستهدفة' : 'Target monthly hours'}</span><input name="monthlyHours" type="number" min="0" max="400" step="1" value="${emp?.monthlyHours ?? ''}" placeholder="${S.settings.monthlyWorkingHours || 208}"></div>
         <div class="field"><span>${lang === 'ar' ? 'ساعات العمل اليومية المستهدفة' : 'Target daily hours'}</span><input name="dailyHours" type="number" min="0" max="24" step="0.5" value="${emp?.dailyHours ?? ''}" placeholder="8"></div>
+        <div class="field"><span>${lang === 'ar' ? 'رصيد أيام الراحة الشهري' : 'Monthly rest-day allowance'}</span><input name="monthlyRestQuota" type="number" min="0" max="31" step="1" value="${emp?.monthlyRestQuota ?? 4}" required><small class="muted">${lang === 'ar' ? 'عدد أيام الراحة المرنة التي يمكن أخذها في أي تاريخ خلال الشهر.' : 'Flexible rest days that can be taken on any date during the month.'}</small></div>
         <div class="field"><span>${lang === 'ar' ? 'نظام أيام الراحة' : 'Rest-day system'}</span><select name="restDaysMode">
           <option value="default" ${(emp?.restDaysMode || 'default') === 'default' ? 'selected' : ''}>${lang === 'ar' ? 'استخدام النظام العام / جدول الورديات' : 'Use company / shift schedule'}</option>
           <option value="dates" ${emp?.restDaysMode === 'dates' ? 'selected' : ''}>${lang === 'ar' ? 'تواريخ راحة محددة' : 'Specific rest dates'}</option>
@@ -270,6 +271,7 @@ window.ZenEmployees = (function () {
     data.profileImage = form.dataset.profileImage || '';
     data.monthlyHours = data.monthlyHours === '' ? null : Number(data.monthlyHours);
     data.dailyHours = data.dailyHours === '' ? null : Number(data.dailyHours);
+    data.monthlyRestQuota = Math.max(0, Math.min(31, Math.floor(Number(data.monthlyRestQuota ?? 4) || 0)));
     data.restDaysMode = data.restDaysMode || 'default';
     data.restDates = String(data.restDates || '').split(/[\\n,;]+/).map(v => v.trim()).filter(v => /^\\d{4}-\\d{2}-\\d{2}$/.test(v));
     data.recurringRestDays = String(data.recurringRestDays || '').split(/[\\s,;]+/).map(Number).filter(v => Number.isInteger(v) && (data.restDaysMode === 'weekly' ? v >= 0 && v <= 6 : v >= 1 && v <= 31));
@@ -291,7 +293,7 @@ window.ZenEmployees = (function () {
         basicSalary: Number(data.basicSalary), hireDate: data.hireDate, contractStart: data.contractStart, contractEnd: data.contractEnd,
         shiftId: data.shiftId, workLocation: data.workLocation, phone: data.phone, email: data.email,
         address: data.address, emergencyContact: data.emergencyContact, notes: data.notes,
-        profileImage: data.profileImage, monthlyHours: data.monthlyHours, dailyHours: data.dailyHours,
+        profileImage: data.profileImage, monthlyHours: data.monthlyHours, dailyHours: data.dailyHours, monthlyRestQuota: data.monthlyRestQuota,
         restDaysMode: data.restDaysMode, restDates: data.restDates, recurringRestDays: data.recurringRestDays, workSystemNotes: data.workSystemNotes,
       });
       if (window.ZenAudit) ZenAudit.logUpdate('employees', id, { fields: Object.keys(data), employeeName: data.name });
@@ -312,7 +314,7 @@ window.ZenEmployees = (function () {
         contractEnd: data.contractEnd, basicSalary: Number(data.basicSalary), shiftId: data.shiftId,
         workLocation: data.workLocation, phone: data.phone, email: data.email, address: data.address,
         emergencyContact: data.emergencyContact, notes: data.notes, profileImage: data.profileImage,
-        monthlyHours: data.monthlyHours, dailyHours: data.dailyHours, restDaysMode: data.restDaysMode,
+        monthlyHours: data.monthlyHours, dailyHours: data.dailyHours, monthlyRestQuota: data.monthlyRestQuota, restDaysMode: data.restDaysMode,
         restDates: data.restDates, recurringRestDays: data.recurringRestDays, workSystemNotes: data.workSystemNotes, isDemo: false,
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
