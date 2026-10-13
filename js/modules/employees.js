@@ -373,6 +373,7 @@ window.ZenEmployees = (function () {
         ${detailItem(ZenI18n.t('emp.shift'), shift ? (lang === 'ar' ? shift.name : shift.nameEn) + ' (' + shift.startTime + '-' + shift.endTime + ')' : '—')}
         ${detailItem(lang === 'ar' ? 'ساعات العمل الشهرية' : 'Monthly target hours', emp.monthlyHours ?? S.settings.monthlyWorkingHours)}
         ${detailItem(lang === 'ar' ? 'ساعات العمل اليومية' : 'Daily target hours', emp.dailyHours ?? '—')}
+        ${detailItem(lang === 'ar' ? 'رصيد الراحة الشهري' : 'Monthly rest-day allowance', (emp.monthlyRestQuota ?? 4) + (lang === 'ar' ? ' أيام' : ' days'))}
         ${detailItem(lang === 'ar' ? 'نظام الراحة' : 'Rest system', ({default:lang==='ar'?'النظام العام': 'Company/shift default',dates:lang==='ar'?'تواريخ محددة':'Specific dates',monthlyDays:lang==='ar'?'أيام شهرية متكررة':'Recurring monthly days',weekly:lang==='ar'?'أيام أسبوعية مخصصة':'Custom weekdays',none:lang==='ar'?'بدون راحة':'No rest days'})[emp.restDaysMode || 'default'])}
         ${detailItem(lang === 'ar' ? 'تفاصيل أيام الراحة' : 'Rest-day details', restDetails)}
         ${detailItem(ZenI18n.t('emp.phone'), emp.phone || '—')}
