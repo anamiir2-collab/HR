@@ -356,19 +356,35 @@ window.ZenPayroll = (function () {
           if (existingIds.has(emp.id)) return;
           if (emp.hireDate > ym + '-28') return;
           const basic = roundPayrollAmount('basicSalary', emp.basicSalary);
-          // Sum applicable allowances/rewards/etc for current month and round enabled components.
+          const cycle = ZenFinanceRules.cycleRange(ym);
+          const localKey = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          const cycleStart = cycle ? localKey(cycle.start) : ym + '-01';
+          const cycleEnd = cycle ? localKey(cycle.end) : ym + '-31';
+          const attendanceRows = S.findBy('attendance', a => a.employeeId === emp.id && a.date >= cycleStart && a.date <= cycleEnd && ['present','late','remote'].includes(a.status));
+          const workedMinutes = attendanceRows.reduce((sum, a) => sum + Math.max(0, Number(a.workMinutes) || 0), 0);
+          const targetHours = Math.max(0, Number(emp.monthlyHours) || Number(S.settings.monthlyWorkingHours) || 208);
+          const dailyHours = Math.max(0.5, Number(emp.dailyHours) || 8);
+          const workedHours = workedMinutes / 60;
+          const overtimeHours = attendanceRows.length ? Math.max(0, workedHours - targetHours) : 0;
+          const expectedWorkDays = targetHours / dailyHours;
+          const coverageComplete = attendanceRows.length >= Math.max(1, Math.ceil(expectedWorkDays * 0.8));
+          const shortageHours = coverageComplete ? Math.max(0, targetHours - workedHours) : 0;
+          const hourlyRate = targetHours > 0 ? Number(emp.basicSalary || 0) / targetHours : 0;
+          const overtime = roundPayrollAmount('overtime', overtimeHours * hourlyRate * (Number(S.settings.overtimeRate) || 1.5));
+          const hourShortageDeduction = roundPayrollAmount('deductions', shortageHours * hourlyRate);
+          // Only count records whose financial periods overlap the configured payroll cycle.
           const allowanceItems = S.findBy('allowances', (a) => a.employeeId === emp.id && ZenFinanceRules.applies(a, ym));
           const allowances = roundPayrollAmount('allowances', allowanceItems.reduce((sum, a) => sum + ZenFinanceRules.roundItem(a, a.amount), 0));
           const rewardItems = S.findBy('rewards', (r) => r.employeeId === emp.id && ZenFinanceRules.applies(r, ym));
           const rewards = roundPayrollAmount('bonuses', rewardItems.reduce((sum, r) => sum + ZenFinanceRules.roundItem(r, r.amount), 0));
-          const deductions = roundPayrollAmount('deductions', S.findBy('deductions', (d) => d.employeeId === emp.id && d.status === 'active').reduce((s, d) => s + d.amount, 0));
+          const baseDeductions = roundPayrollAmount('deductions', S.findBy('deductions', (d) => d.employeeId === emp.id && d.status === 'active').reduce((s, d) => s + d.amount, 0));
+          const deductions = baseDeductions + hourShortageDeduction;
           const penalties = roundPayrollAmount('penalties', S.findBy('penalties', (p) => p.employeeId === emp.id && p.status === 'active').reduce((s, p) => s + p.amount, 0));
           const insuranceEmp = roundPayrollAmount('insurance', Math.round(basic * (S.settings.insuranceEmployeeRate / 100)));
-          const tax = roundPayrollAmount('tax', estimateTax(basic + allowances + rewards, S.settings.taxBrackets));
-          // Loan installment
+          const tax = roundPayrollAmount('tax', estimateTax(basic + allowances + rewards + overtime, S.settings.taxBrackets));
           const activeLoans = S.findBy('loans', (l) => l.employeeId === emp.id && l.status === 'active');
           const loanInstallment = roundPayrollAmount('advances', activeLoans.reduce((s, l) => s + l.installmentAmount, 0));
-          const gross = basic + allowances + rewards;
+          const gross = basic + allowances + rewards + overtime;
           const totalDed = deductions + penalties + insuranceEmp + tax + loanInstallment;
           const net = gross - totalDed;
           S.insert('payroll', {
@@ -376,8 +392,10 @@ window.ZenPayroll = (function () {
             employeeId: emp.id,
             period: ym,
             basicSalary: basic,
-            allowances, rewards, overtime: 0,
+            allowances, rewards, overtime,
             deductions, penalties,
+            attendanceWorkHours: Number(workedHours.toFixed(2)), monthlyHoursTarget: targetHours,
+            overtimeHours: Number(overtimeHours.toFixed(2)), shortageHours: Number(shortageHours.toFixed(2)), hourShortageDeduction,
             insuranceEmployee: insuranceEmp,
             insuranceEmployer: Math.round(basic * (S.settings.insuranceEmployerRate / 100)),
             tax, loanInstallment, otherAdjustments: 0,
