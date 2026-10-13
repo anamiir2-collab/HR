@@ -35,6 +35,7 @@ window.ZenReports = (function () {
       { id: 'offboarding', icon: '⏻', color: 'gray', title: lang === 'ar' ? 'تقرير إنهاء الخدمة' : 'Offboarding Report', desc: lang === 'ar' ? 'عمليات إنهاء الخدمة' : 'Employment terminations' },
       { id: 'fingerprint_imports', icon: '⇩', color: 'info', title: lang === 'ar' ? 'نتائج استيراد البصمات' : 'Fingerprint Import Results', desc: lang === 'ar' ? 'سجل دفعات الاستيراد' : 'Import batch history' },
       { id: 'audit', icon: '⟲', color: 'gray', title: lang === 'ar' ? 'سجل التدقيق' : 'Audit Log', desc: lang === 'ar' ? 'تاريخ الإجراءات' : 'Action history' },
+      { id: 'rounding', icon: '≈', color: 'warning', title: lang === 'ar' ? 'مقارنة التقريب' : 'Rounding Comparison', desc: lang === 'ar' ? 'الأصلية مقابل المُقرّبة' : 'Original vs rounded amounts' },
       { id: 'hiring', icon: '↗', color: 'success', title: lang === 'ar' ? 'تقرير التوظيف' : 'Hiring Report', desc: lang === 'ar' ? 'التوظيف والاستقطاب' : 'Recruitment stats' },
       { id: 'performance', icon: '☆', color: 'brand', title: lang === 'ar' ? 'تقييم الأداء' : 'Performance Report', desc: lang === 'ar' ? 'نتائج التقييمات' : 'Evaluation results' },
     ];
@@ -306,6 +307,57 @@ window.ZenReports = (function () {
         { label: lang === 'ar' ? 'المستخدم' : 'User', render: (r) => U.esc(r.userName || r.user) },
       ];
       summary = { label: lang === 'ar' ? 'إجمالي السجلات' : 'Total Entries', value: S.getCollection('auditLog').length };
+    } else if (id === 'rounding') {
+      title = lang === 'ar' ? 'مقارنة التقريب (الأصلي مقابل المُقرّب)' : 'Rounding Comparison (Original vs Rounded)';
+      const cfg = ZenRounding.getSettings();
+      if (!cfg.enabled) {
+        UI.modal({
+          title,
+          body: `<div class="alert info"><b>${lang === 'ar' ? 'التقريب معطّل حالياً.' : 'Rounding is currently OFF.'}</b><br>${lang === 'ar' ? 'فعّل التقريب من الإعدادات → تقريب المبالغ لعرض جدول المقارنة.' : 'Enable rounding in Settings → Rounding to see the comparison table.'}</div>`,
+          footer: [{ label: ZenI18n.t('common.close'), kind: 'secondary', onClick: (mm) => mm.close() }],
+        });
+        return;
+      }
+      // Build per-employee rounding comparison from current payroll period
+      const payrollRecords = S.getCollection('payroll');
+      const comparisonRows = [];
+      payrollRecords.forEach((p) => {
+        const emp = empMap[p.employeeId];
+        const items = [
+          { category: 'basicSalary', label: lang === 'ar' ? 'الراتب الأساسي' : 'Basic Salary', amount: p.basicSalary },
+          { category: 'allowances', label: lang === 'ar' ? 'البدلات' : 'Allowances', amount: p.allowances },
+          { category: 'bonuses', label: lang === 'ar' ? 'المكافآت' : 'Bonuses', amount: p.rewards },
+          { category: 'overtime', label: lang === 'ar' ? 'العمل الإضافي' : 'Overtime', amount: p.overtime },
+          { category: 'deductions', label: lang === 'ar' ? 'الخصومات' : 'Deductions', amount: p.deductions },
+          { category: 'penalties', label: lang === 'ar' ? 'الجزاءات' : 'Penalties', amount: p.penalties },
+          { category: 'insurance', label: lang === 'ar' ? 'تأمين' : 'Insurance', amount: p.insuranceEmployee },
+          { category: 'advances', label: lang === 'ar' ? 'قسط سلفة' : 'Loan', amount: p.loanInstallment },
+        ].filter((it) => it.amount > 0);
+        const r = ZenRounding.applyToItems(items);
+        r.items.filter((it) => it.applied).forEach((it) => {
+          comparisonRows.push({
+            employeeId: p.employeeId,
+            employeeName: emp ? (lang === 'ar' ? emp.name : (emp.nameEn || emp.name)) : p.employeeId,
+            item: it.label,
+            original: it.original,
+            rounded: it.rounded,
+            difference: it.difference,
+            period: p.period,
+          });
+        });
+      });
+      rows = comparisonRows;
+      columns = [
+        { label: 'Employee ID', render: (r) => U.esc(r.employeeId) },
+        { label: ZenI18n.t('common.employee'), render: (r) => U.esc(r.employeeName) },
+        { label: lang === 'ar' ? 'الشهر' : 'Period', render: (r) => U.esc(r.period) },
+        { label: lang === 'ar' ? 'البند' : 'Financial Item', render: (r) => U.esc(r.item) },
+        { label: lang === 'ar' ? 'المبلغ الأصلي' : 'Original', render: (r) => U.num(r.original) },
+        { label: lang === 'ar' ? 'بعد التقريب' : 'Rounded', render: (r) => '<b>' + U.num(r.rounded) + '</b>' },
+        { label: lang === 'ar' ? 'الفرق' : 'Difference', render: (r) => '<span style="color:' + (r.difference < 0 ? 'var(--danger-700)' : 'var(--success-700)') + '">' + (r.difference > 0 ? '+' : '') + U.num(r.difference) + '</span>' },
+      ];
+      const totalDiff = comparisonRows.reduce((s, r) => s + r.difference, 0);
+      summary = { label: lang === 'ar' ? 'إجمالي فرق التقريب' : 'Total Rounding Difference', value: U.num(totalDiff) + ' EGP' };
     }
 
     const body = `
@@ -433,12 +485,62 @@ window.ZenReports = (function () {
         { label: lang === 'ar' ? 'المستخدم' : 'User', value: (r) => r.userName || r.user },
         { label: lang === 'ar' ? 'التفاصيل' : 'Details', value: (r) => JSON.stringify(r.detail || {}), wrap: true },
       ] },
+      rounding: { collection: '__rounding__', filename: 'rounding-comparison', sheetName: lang === 'ar' ? 'مقارنة التقريب' : 'Rounding Comparison', columns: null },
     };
     const report = REPORTS[id];
     if (!report) {
       UI.toast(lang === 'ar' ? 'سيتم إعداد التصدير قريباً' : 'Export for this report type will be added', 'info');
       return;
     }
+
+    // Special case: rounding report builds rows dynamically
+    if (id === 'rounding') {
+      const cfg = ZenRounding.getSettings();
+      if (!cfg.enabled) { UI.toast(lang === 'ar' ? 'التقريب معطّل' : 'Rounding is OFF', 'warning'); return; }
+      const payrollRecords = S.getCollection('payroll');
+      const comparisonRows = [];
+      payrollRecords.forEach((p) => {
+        const emp = empMap[p.employeeId];
+        const items = [
+          { category: 'basicSalary', label: lang === 'ar' ? 'الراتب الأساسي' : 'Basic Salary', amount: p.basicSalary },
+          { category: 'allowances', label: lang === 'ar' ? 'البدلات' : 'Allowances', amount: p.allowances },
+          { category: 'bonuses', label: lang === 'ar' ? 'المكافآت' : 'Bonuses', amount: p.rewards },
+          { category: 'overtime', label: lang === 'ar' ? 'العمل الإضافي' : 'Overtime', amount: p.overtime },
+          { category: 'deductions', label: lang === 'ar' ? 'الخصومات' : 'Deductions', amount: p.deductions },
+          { category: 'penalties', label: lang === 'ar' ? 'الجزاءات' : 'Penalties', amount: p.penalties },
+          { category: 'insurance', label: lang === 'ar' ? 'تأمين' : 'Insurance', amount: p.insuranceEmployee },
+          { category: 'advances', label: lang === 'ar' ? 'قسط سلفة' : 'Loan', amount: p.loanInstallment },
+        ].filter((it) => it.amount > 0);
+        const r = ZenRounding.applyToItems(items);
+        r.items.filter((it) => it.applied).forEach((it) => {
+          comparisonRows.push({
+            employeeId: p.employeeId,
+            employeeName: emp ? (lang === 'ar' ? emp.name : (emp.nameEn || emp.name)) : p.employeeId,
+            period: p.period,
+            item: it.label,
+            original: it.original,
+            rounded: it.rounded,
+            difference: it.difference,
+          });
+        });
+      });
+      if (!comparisonRows.length) { UI.toast(lang === 'ar' ? 'لا توجد فروق تقريب' : 'No rounding differences', 'info'); return; }
+      const cols = [
+        { label: 'Employee ID', value: (r) => r.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (r) => r.employeeName },
+        { label: lang === 'ar' ? 'الشهر' : 'Period', value: (r) => r.period },
+        { label: lang === 'ar' ? 'البند' : 'Financial Item', value: (r) => r.item },
+        { label: lang === 'ar' ? 'المبلغ الأصلي' : 'Original', value: (r) => r.original, type: 'money' },
+        { label: lang === 'ar' ? 'بعد التقريب' : 'Rounded', value: (r) => r.rounded, type: 'money' },
+        { label: lang === 'ar' ? 'الفرق' : 'Difference', value: (r) => r.difference, type: 'money' },
+      ];
+      const filename = `agrimasters-rounding-comparison-${U.today()}.xlsx`;
+      ZenExport.toXLSX(comparisonRows, cols, filename, report.sheetName, { title: 'AGRIMASTERS HR — ' + report.sheetName });
+      if (window.ZenAudit) ZenAudit.logExport('rounding', { count: comparisonRows.length });
+      UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير بصيغة XLSX' : 'Exported as XLSX', 'success');
+      return;
+    }
+
     const rows = S.getCollection(report.collection);
     if (!rows.length) { UI.toast(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
     const filename = `agrimasters-${report.filename}-${U.today()}.xlsx`;

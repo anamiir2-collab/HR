@@ -69,6 +69,25 @@ window.ZenStore = (function () {
     auditEnabled: true,
     // Fingerprint device adapter (informational only — no real connectivity claimed)
     fingerprintDevice: { vendor: '', model: '', adapter: 'csv', lastConnected: null },
+    // Financial rounding (OFF by default; rounds eligible positive amounts DOWN to nearest 5 EGP when ON)
+    financialRounding: {
+      enabled: false,
+      increment: 5,
+      scope: 'individual',        // 'individual' | 'total' | 'both'
+      deductionsPolicy: 'down',   // 'down' | 'up' | 'none'
+      applyTo: {
+        basicSalary: true,
+        allowances: true,
+        bonuses: true,
+        incentives: true,
+        overtime: true,
+        otherEarnings: true,
+        deductions: true,
+        penalties: true,
+        advances: true,
+        insurance: false,
+      },
+    },
   };
 
   let settings = null;

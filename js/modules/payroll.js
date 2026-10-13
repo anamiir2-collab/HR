@@ -140,6 +140,57 @@ window.ZenPayroll = (function () {
     const p = S.getById('payroll', id);
     if (!p) return;
     const emp = S.getById('employees', p.employeeId);
+
+    // Build rounding comparison
+    const roundingCfg = ZenRounding.getSettings();
+    let roundingHtml = '';
+    if (roundingCfg.enabled) {
+      const items = [
+        { category: 'basicSalary', label: lang === 'ar' ? 'الراتب الأساسي' : 'Basic Salary', amount: p.basicSalary },
+        { category: 'allowances', label: lang === 'ar' ? 'البدلات' : 'Allowances', amount: p.allowances },
+        { category: 'bonuses', label: lang === 'ar' ? 'المكافآت' : 'Bonuses', amount: p.rewards },
+        { category: 'overtime', label: lang === 'ar' ? 'العمل الإضافي' : 'Overtime', amount: p.overtime },
+        { category: 'deductions', label: lang === 'ar' ? 'الخصومات' : 'Deductions', amount: p.deductions },
+        { category: 'penalties', label: lang === 'ar' ? 'الجزاءات' : 'Penalties', amount: p.penalties },
+        { category: 'insurance', label: lang === 'ar' ? 'تأمين الموظف' : 'Emp Insurance', amount: p.insuranceEmployee },
+        { category: 'advances', label: lang === 'ar' ? 'قسط سلفة' : 'Loan Install.', amount: p.loanInstallment },
+      ].filter((it) => it.amount > 0);
+      const result = ZenRounding.applyToItems(items);
+      const anyApplied = result.items.some((it) => it.applied);
+      if (anyApplied) {
+        roundingHtml = `
+          <div class="card mt-16" style="background:var(--brand-50);border:1px solid var(--brand-100)">
+            <div class="card-head"><div><h3 style="color:var(--brand-700)">${lang === 'ar' ? 'جدول مقارنة التقريب' : 'Rounding Comparison Table'}</h3>
+            <p style="font-size:12px">${lang === 'ar' ? 'التقريب للأسفل إلى أقرب ' + roundingCfg.increment + ' جنيه' : 'Rounded down to nearest ' + roundingCfg.increment + ' EGP'}</p></div></div>
+            <div class="table-scroll"><table class="data">
+              <thead><tr>
+                <th>${lang === 'ar' ? 'البند' : 'Financial Item'}</th>
+                <th>${lang === 'ar' ? 'المبلغ الأصلي' : 'Original'}</th>
+                <th>${lang === 'ar' ? 'بعد التقريب' : 'Rounded'}</th>
+                <th>${lang === 'ar' ? 'الفرق' : 'Difference'}</th>
+              </tr></thead>
+              <tbody>
+                ${result.items.map((it) => it.applied ? `
+                  <tr>
+                    <td>${U.esc(it.label)}${it.isDeduction ? ' <span class="badge gray" style="font-size:9px">خصم</span>' : ''}</td>
+                    <td>${U.num(it.original)}</td>
+                    <td><b>${U.num(it.rounded)}</b></td>
+                    <td style="color:${it.difference < 0 ? 'var(--danger-700)' : 'var(--success-700)'}">${it.difference > 0 ? '+' : ''}${U.num(it.difference)}</td>
+                  </tr>
+                ` : '').join('')}
+                <tr style="background:var(--brand-100);font-weight:bold">
+                  <td>${lang === 'ar' ? 'صافي الراتب الأصلي' : 'Original Net'}</td>
+                  <td>${U.num(result.totals.originalNet)}</td>
+                  <td>${lang === 'ar' ? 'صافي بعد التقريب' : 'Rounded Net'}</td>
+                  <td><b style="color:var(--brand-700)">${U.num(result.totals.roundedNet)}</b></td>
+                </tr>
+              </tbody>
+            </table></div>
+          </div>
+        `;
+      }
+    }
+
     const body = `
       <h3 style="margin:0 0 4px">${U.esc(emp ? emp.name : p.employeeId)}</h3>
       <p style="margin:0 0 16px;color:var(--text-muted);font-size:13px">${U.esc(p.employeeId)} · ${U.monthLabel(p.period)}</p>
@@ -161,6 +212,7 @@ window.ZenPayroll = (function () {
         <div class="detail-item"><span class="label">${lang === 'ar' ? 'الحالة' : 'Status'}</span><span class="value">${UI.statusBadge(p.status)}</span></div>
         ${p.paymentDate ? `<div class="detail-item"><span class="label">${lang === 'ar' ? 'تاريخ الدفع' : 'Payment Date'}</span><span class="value">${U.date(p.paymentDate)}</span></div>` : ''}
       </div>
+      ${roundingHtml}
     `;
     UI.modal({
       title: lang === 'ar' ? 'تفاصيل المرتب' : 'Payroll Detail',
@@ -297,8 +349,35 @@ window.ZenPayroll = (function () {
 
   function printSlip(p) {
     const emp = S.getById('employees', p.employeeId);
+    const roundingCfg = ZenRounding.getSettings();
+    let roundingRows = '';
+    if (roundingCfg.enabled) {
+      const items = [
+        { category: 'basicSalary', label: ZenI18n.lang === 'ar' ? 'الراتب الأساسي' : 'Basic Salary', amount: p.basicSalary },
+        { category: 'allowances', label: ZenI18n.lang === 'ar' ? 'البدلات' : 'Allowances', amount: p.allowances },
+        { category: 'bonuses', label: ZenI18n.lang === 'ar' ? 'المكافآت' : 'Bonuses', amount: p.rewards },
+        { category: 'overtime', label: ZenI18n.lang === 'ar' ? 'العمل الإضافي' : 'Overtime', amount: p.overtime },
+        { category: 'deductions', label: ZenI18n.lang === 'ar' ? 'الخصومات' : 'Deductions', amount: p.deductions },
+        { category: 'penalties', label: ZenI18n.lang === 'ar' ? 'الجزاءات' : 'Penalties', amount: p.penalties },
+        { category: 'insurance', label: ZenI18n.lang === 'ar' ? 'تأمين الموظف' : 'Emp Insurance', amount: p.insuranceEmployee },
+        { category: 'advances', label: ZenI18n.lang === 'ar' ? 'قسط سلفة' : 'Loan Install.', amount: p.loanInstallment },
+      ].filter((it) => it.amount > 0);
+      const r = ZenRounding.applyToItems(items);
+      if (r.items.some((it) => it.applied)) {
+        roundingRows = `
+          <h3 style="color:#14532d;margin:20px 0 8px">${ZenI18n.lang === 'ar' ? 'جدول مقارنة التقريب' : 'Rounding Comparison'}</h3>
+          <table>
+            <thead><tr><th>${ZenI18n.lang === 'ar' ? 'البند' : 'Item'}</th><th>${ZenI18n.lang === 'ar' ? 'أصلي' : 'Original'}</th><th>${ZenI18n.lang === 'ar' ? 'بعد التقريب' : 'Rounded'}</th><th>${ZenI18n.lang === 'ar' ? 'الفرق' : 'Difference'}</th></tr></thead>
+            <tbody>
+              ${r.items.filter((it) => it.applied).map((it) => `<tr><td>${it.label}</td><td>${U.num(it.original)}</td><td><b>${U.num(it.rounded)}</b></td><td>${it.difference > 0 ? '+' : ''}${U.num(it.difference)}</td></tr>`).join('')}
+              <tr style="background:#dcfce7;font-weight:bold"><td>${ZenI18n.lang === 'ar' ? 'الصافي الأصلي' : 'Original Net'}</td><td>${U.num(r.totals.originalNet)}</td><td>${ZenI18n.lang === 'ar' ? 'الصافي بعد التقريب' : 'Rounded Net'}</td><td>${U.num(r.totals.roundedNet)}</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+    }
     const html = `
-      <h2 style="margin:0;color:#0f766e">${ZenI18n.lang === 'ar' ? 'قسيمة راتب' : 'Payslip'}</h2>
+      <h2 style="margin:0;color:#14532d">${ZenI18n.lang === 'ar' ? 'قسيمة راتب' : 'Payslip'}</h2>
       <p style="margin:4px 0 16px;color:#64748b">${U.esc(emp ? emp.name : p.employeeId)} · ${U.monthLabel(p.period)}</p>
       <table>
         <tr><th>${ZenI18n.t('emp.basicSalary')}</th><td>${U.money(p.basicSalary)}</td></tr>
@@ -312,8 +391,9 @@ window.ZenPayroll = (function () {
         <tr><th>${ZenI18n.lang === 'ar' ? 'ضريبة' : 'Tax'}</th><td>${U.money(p.tax)}</td></tr>
         ${p.loanInstallment ? `<tr><th>${ZenI18n.lang === 'ar' ? 'قسط سلفة' : 'Loan'}</th><td>${U.money(p.loanInstallment)}</td></tr>` : ''}
         <tr style="background:#fee2e2;font-weight:bold"><td>${ZenI18n.lang === 'ar' ? 'إجمالي الخصومات' : 'Total Deductions'}</td><td>${U.money(p.totalDeductions)}</td></tr>
-        <tr style="background:#ccfbf1;font-size:14pt;font-weight:bold"><td>${ZenI18n.lang === 'ar' ? 'صافي الراتب' : 'Net Salary'}</td><td>${U.money(p.netSalary)}</td></tr>
+        <tr style="background:#dcfce7;font-size:14pt;font-weight:bold"><td>${ZenI18n.lang === 'ar' ? 'صافي الراتب' : 'Net Salary'}</td><td>${U.money(p.netSalary)}</td></tr>
       </table>
+      ${roundingRows}
     `;
     U.printElement(html, ZenI18n.lang === 'ar' ? 'قسيمة راتب' : 'Payslip');
   }
@@ -335,25 +415,63 @@ window.ZenPayroll = (function () {
   function exportData() {
     const lang = ZenI18n.lang;
     const rows = getFiltered();
+    if (!rows.length) { UI.toast(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
     const empMap = {};
     S.getCollection('employees').forEach((e) => empMap[e.id] = e);
-    ZenExport.toExcel(rows, [
+    const roundingCfg = ZenRounding.getSettings();
+    const columns = [
       { label: ZenI18n.t('common.employee'), value: (p) => { const e = empMap[p.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : p.employeeId; } },
-      { label: 'ID', value: (p) => p.employeeId },
+      { label: 'Employee ID', value: (p) => p.employeeId },
       { label: lang === 'ar' ? 'الشهر' : 'Period', value: (p) => p.period },
-      { label: ZenI18n.t('emp.basicSalary'), value: (p) => p.basicSalary },
-      { label: lang === 'ar' ? 'البدلات' : 'Allowances', value: (p) => p.allowances },
-      { label: lang === 'ar' ? 'المكافآت' : 'Rewards', value: (p) => p.rewards },
-      { label: lang === 'ar' ? 'العمل الإضافي' : 'Overtime', value: (p) => p.overtime },
-      { label: lang === 'ar' ? 'إجمالي الراتب' : 'Gross', value: (p) => p.grossEarnings },
-      { label: lang === 'ar' ? 'الخصومات' : 'Deductions', value: (p) => p.deductions },
-      { label: lang === 'ar' ? 'الجزاءات' : 'Penalties', value: (p) => p.penalties },
-      { label: lang === 'ar' ? 'تأمين' : 'Insurance', value: (p) => p.insuranceEmployee },
-      { label: lang === 'ar' ? 'ضريبة' : 'Tax', value: (p) => p.tax },
-      { label: lang === 'ar' ? 'صافي' : 'Net', value: (p) => p.netSalary },
+      { label: ZenI18n.t('emp.basicSalary'), value: (p) => p.basicSalary, type: 'money' },
+      { label: lang === 'ar' ? 'البدلات' : 'Allowances', value: (p) => p.allowances, type: 'money' },
+      { label: lang === 'ar' ? 'المكافآت' : 'Rewards', value: (p) => p.rewards, type: 'money' },
+      { label: lang === 'ar' ? 'العمل الإضافي' : 'Overtime', value: (p) => p.overtime, type: 'money' },
+      { label: lang === 'ar' ? 'إجمالي الراتب' : 'Gross', value: (p) => p.grossEarnings, type: 'money' },
+      { label: lang === 'ar' ? 'الخصومات' : 'Deductions', value: (p) => p.deductions, type: 'money' },
+      { label: lang === 'ar' ? 'الجزاءات' : 'Penalties', value: (p) => p.penalties, type: 'money' },
+      { label: lang === 'ar' ? 'تأمين' : 'Insurance', value: (p) => p.insuranceEmployee, type: 'money' },
+      { label: lang === 'ar' ? 'ضريبة' : 'Tax', value: (p) => p.tax, type: 'money' },
+      { label: lang === 'ar' ? 'صافي' : 'Net', value: (p) => p.netSalary, type: 'money' },
       { label: ZenI18n.t('common.status'), value: (p) => ZenI18n.t('status.' + p.status) },
-    ], 'zenhr-payroll.xls', 'Payroll');
-    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير' : 'Exported', 'success');
+    ];
+    // Add rounding columns if enabled
+    if (roundingCfg.enabled) {
+      columns.push(
+        { label: lang === 'ar' ? 'الصافي بعد التقريب' : 'Rounded Net', value: (p) => {
+          const items = [
+            { category: 'basicSalary', amount: p.basicSalary },
+            { category: 'allowances', amount: p.allowances },
+            { category: 'bonuses', amount: p.rewards },
+            { category: 'overtime', amount: p.overtime },
+            { category: 'deductions', amount: p.deductions },
+            { category: 'penalties', amount: p.penalties },
+            { category: 'insurance', amount: p.insuranceEmployee },
+            { category: 'advances', amount: p.loanInstallment },
+          ];
+          const r = ZenRounding.applyToItems(items);
+          return r.totals.roundedNet;
+        }, type: 'money' },
+        { label: lang === 'ar' ? 'فرق التقريب' : 'Rounding Difference', value: (p) => {
+          const items = [
+            { category: 'basicSalary', amount: p.basicSalary },
+            { category: 'allowances', amount: p.allowances },
+            { category: 'bonuses', amount: p.rewards },
+            { category: 'overtime', amount: p.overtime },
+            { category: 'deductions', amount: p.deductions },
+            { category: 'penalties', amount: p.penalties },
+            { category: 'insurance', amount: p.insuranceEmployee },
+            { category: 'advances', amount: p.loanInstallment },
+          ];
+          const r = ZenRounding.applyToItems(items);
+          return r.totals.roundedNet - r.totals.originalNet;
+        }, type: 'money' }
+      );
+    }
+    const filename = `agrimasters-payroll-${state.period || U.today()}.xlsx`;
+    ZenExport.toXLSX(rows, columns, filename, lang === 'ar' ? 'المرتبات' : 'Payroll', { title: 'AGRIMASTERS HR — ' + (lang === 'ar' ? 'تقرير المرتبات' : 'Payroll Report') });
+    if (window.ZenAudit) ZenAudit.logExport('payroll', { count: rows.length, rounding: roundingCfg.enabled });
+    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير بصيغة XLSX' : 'Exported as XLSX', 'success');
   }
 
   return { render, estimateTax };

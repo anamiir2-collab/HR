@@ -19,6 +19,7 @@ window.ZenSettings = (function () {
       { id: 'general', label: lang === 'ar' ? 'عام' : 'General' },
       { id: 'company', label: lang === 'ar' ? 'الشركة' : 'Company' },
       { id: 'rules', label: lang === 'ar' ? 'القواعد' : 'Rules' },
+      { id: 'rounding', label: lang === 'ar' ? 'تقريب المبالغ' : 'Rounding' },
       { id: 'backup', label: lang === 'ar' ? 'النسخ الاحتياطي' : 'Backup' },
       { id: 'demo', label: lang === 'ar' ? 'البيانات التجريبية' : 'Demo Data' },
       { id: 'about', label: lang === 'ar' ? 'حول' : 'About' },
@@ -36,6 +37,7 @@ window.ZenSettings = (function () {
     if (state.tab === 'general') renderGeneral(target);
     else if (state.tab === 'company') renderCompany(target);
     else if (state.tab === 'rules') renderRules(target);
+    else if (state.tab === 'rounding') renderRounding(target);
     else if (state.tab === 'backup') renderBackup(target);
     else if (state.tab === 'demo') renderDemo(target);
     else renderAbout(target);
@@ -146,6 +148,150 @@ window.ZenSettings = (function () {
       S.settings.workingDays = workingDays;
       S.saveSettings();
       UI.toast(lang === 'ar' ? 'تم الحفظ' : 'Saved', 'success');
+    };
+  }
+
+  function renderRounding(c) {
+    const lang = ZenI18n.lang;
+    const cfg = ZenRounding.getSettings();
+    const categories = [
+      { id: 'basicSalary', ar: 'الراتب الأساسي', en: 'Basic Salary', isDeduction: false },
+      { id: 'allowances', ar: 'البدلات', en: 'Allowances', isDeduction: false },
+      { id: 'bonuses', ar: 'المكافآت', en: 'Bonuses', isDeduction: false },
+      { id: 'incentives', ar: 'الحوافز', en: 'Incentives', isDeduction: false },
+      { id: 'overtime', ar: 'العمل الإضافي', en: 'Overtime', isDeduction: false },
+      { id: 'otherEarnings', ar: 'أرباح أخرى', en: 'Other Earnings', isDeduction: false },
+      { id: 'deductions', ar: 'الخصومات', en: 'Deductions', isDeduction: true },
+      { id: 'penalties', ar: 'الجزاءات', en: 'Penalties', isDeduction: true },
+      { id: 'advances', ar: 'السلف والأقساط', en: 'Advances & Installments', isDeduction: true },
+      { id: 'insurance', ar: 'التأمينات', en: 'Insurance', isDeduction: true },
+    ];
+
+    // Verification examples
+    const examples = ZenRounding.verifyExamples();
+    const examplesHtml = examples.map((ex) => `
+      <tr>
+        <td><code>${ex.input.toLocaleString('en-US')}</code></td>
+        <td><b>${ex.expected.toLocaleString('en-US')}</b></td>
+        <td>${ex.actual.toLocaleString('en-US')}</td>
+        <td>${ex.pass ? '<span class="badge success">✓</span>' : '<span class="badge danger">✕</span>'}</td>
+      </tr>
+    `).join('');
+
+    c.innerHTML = `
+      <div class="card mb-16">
+        <div class="card-head">
+          <div>
+            <h3>${lang === 'ar' ? 'تقريب المبالغ المالية' : 'Financial Amount Rounding'}</h3>
+            <p>${lang === 'ar' ? 'تقريب المبالغ الموجبة المؤهلة للأسفل إلى أقرب مضاعف لـ 5 جنيه' : 'Round eligible positive amounts DOWN to the nearest multiple of 5 EGP'}</p>
+          </div>
+        </div>
+
+        <div class="alert ${cfg.enabled ? 'warning' : 'info'} mb-16">
+          <b>${lang === 'ar' ? 'الحالة الحالية:' : 'Current status:'}</b>
+          ${cfg.enabled
+            ? (lang === 'ar' ? 'مفعّل — يتم تقريب المبالغ للأسفل' : 'ON — amounts are rounded down')
+            : (lang === 'ar' ? 'معطّل — تُحفظ المبالغ الأصلية بدون تقريب' : 'OFF — original amounts preserved without rounding')}
+        </div>
+
+        <form id="round-form" class="form-grid">
+          <label class="field">
+            <span>${lang === 'ar' ? 'تفعيل التقريب' : 'Enable Rounding'}</span>
+            <select name="enabled">
+              <option value="false" ${!cfg.enabled ? 'selected' : ''}>${lang === 'ar' ? 'معطّل (افتراضي)' : 'OFF (default)'}</option>
+              <option value="true" ${cfg.enabled ? 'selected' : ''}>${lang === 'ar' ? 'مفعّل' : 'ON'}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>${lang === 'ar' ? 'مضاعف التقريب (جنيه)' : 'Rounding Increment (EGP)'}</span>
+            <input type="number" name="increment" value="${cfg.increment}" min="1" step="1">
+          </label>
+
+          <label class="field">
+            <span>${lang === 'ar' ? 'نطاق التقريب' : 'Rounding Scope'}</span>
+            <select name="scope">
+              <option value="individual" ${cfg.scope === 'individual' ? 'selected' : ''}>${lang === 'ar' ? 'على كل بند' : 'Individual items'}</option>
+              <option value="total" ${cfg.scope === 'total' ? 'selected' : ''}>${lang === 'ar' ? 'على الإجمالي فقط' : 'Final total only'}</option>
+              <option value="both" ${cfg.scope === 'both' ? 'selected' : ''}>${lang === 'ar' ? 'كلاهما' : 'Both'}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>${lang === 'ar' ? 'سياسة الخصومات' : 'Deductions Policy'}</span>
+            <select name="deductionsPolicy">
+              <option value="down" ${cfg.deductionsPolicy === 'down' ? 'selected' : ''}>${lang === 'ar' ? 'تقريب للأسفل (يقلل الخصم)' : 'Round down (reduces deduction)'}</option>
+              <option value="up" ${cfg.deductionsPolicy === 'up' ? 'selected' : ''}>${lang === 'ar' ? 'تقريب للأعلى (يزيد الخصم)' : 'Round up (increases deduction)'}</option>
+              <option value="none" ${cfg.deductionsPolicy === 'none' ? 'selected' : ''}>${lang === 'ar' ? 'بدون تقريب' : 'No rounding'}</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="mt-16">
+          <h4 style="margin:0 0 8px;font-size:13px">${lang === 'ar' ? 'تطبيق التقريب على الفئات' : 'Apply Rounding to Categories'}</h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+            ${categories.map((cat) => `
+              <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">
+                <input type="checkbox" name="cat-${cat.id}" ${cfg.applyTo[cat.id] ? 'checked' : ''}>
+                <span>${U.esc(lang === 'ar' ? cat.ar : cat.en)}</span>
+                ${cat.isDeduction ? '<span class="badge gray" style="font-size:10px">خصم</span>' : '<span class="badge success" style="font-size:10px">ربح</span>'}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="form-actions mt-16">
+          <button class="btn primary" id="round-save">${ZenI18n.t('common.save')}</button>
+        </div>
+      </div>
+
+      <div class="card mb-16">
+        <div class="card-head"><div><h3>${lang === 'ar' ? 'أمثلة التقريب (للأسفل إلى أقرب 5 جنيه)' : 'Rounding Examples (down to nearest 5 EGP)'}</h3></div></div>
+        <div class="table-scroll"><table class="data">
+          <thead><tr>
+            <th>${lang === 'ar' ? 'المبلغ الأصلي' : 'Original Amount'}</th>
+            <th>${lang === 'ar' ? 'المتوقع' : 'Expected'}</th>
+            <th>${lang === 'ar' ? 'النتيجة' : 'Actual'}</th>
+            <th>${lang === 'ar' ? 'الحالة' : 'Status'}</th>
+          </tr></thead>
+          <tbody>${examplesHtml}</tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h3>${lang === 'ar' ? 'ملاحظات مهمة' : 'Important Notes'}</h3></div></div>
+        <div class="alert info">
+          <ul style="margin:0;padding-inline-start:20px;line-height:1.8;font-size:13px">
+            <li>${lang === 'ar' ? 'الافتراضي معطّل. عند التعطيل تُحفظ المبالغ الأصلية بدون تقريب.' : 'Default is OFF. When OFF, original amounts are preserved without rounding.'}</li>
+            <li>${lang === 'ar' ? 'عند التفعيل، تُقرب المبالغ الموجبة المؤهلة للأسفل إلى أقرب مضاعف لـ 5 جنيه.' : 'When ON, eligible positive amounts are rounded DOWN to the nearest multiple of 5 EGP.'}</li>
+            <li>${lang === 'ar' ? '<b>لا تُستبدل المبالغ الأصلية أبداً</b> — تُحفظ القيمة الأصلية والقيمة المُقرّبة والفرق.' : '<b>Original amounts are never overwritten</b> — original, rounded, and difference are all retained.'}</li>
+            <li>${lang === 'ar' ? 'تقريب البنود الفردية قد يختلف عن تقريب الإجمالي النهائي فقط — اختر النطاق المناسب لسياسة الشركة.' : 'Rounding individual items may differ from rounding only the final total — choose the scope that matches company policy.'}</li>
+            <li>${lang === 'ar' ? 'الخصومات تتبع سياسة منفصلة: للأسفل (يقلل الخصم) أو للأعلى (يزيد الخصم) أو بدون تقريب.' : 'Deductions follow a separate policy: down (reduces deduction), up (increases deduction), or no rounding.'}</li>
+            <li>${lang === 'ar' ? 'المرتبات النهائية المؤرشفة لا يُعاد حسابها تلقائياً عند تغيير الإعداد.' : 'Finalized historical payroll is NOT silently recalculated when the setting changes.'}</li>
+            <li>${lang === 'ar' ? 'لا يوجد تقريب مزدوج — يُطبق التقريب مرة واحدة على المبلغ الأصلي.' : 'No double rounding — rounding is applied once to the original amount.'}</li>
+          </ul>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('round-save').onclick = () => {
+      const form = document.getElementById('round-form');
+      const data = UI.readForm(form);
+      const newCfg = {
+        enabled: data.enabled === 'true',
+        increment: Number(data.increment) || 5,
+        scope: data.scope,
+        deductionsPolicy: data.deductionsPolicy,
+        applyTo: {},
+      };
+      categories.forEach((cat) => {
+        const cb = document.querySelector(`[name="cat-${cat.id}"]`);
+        newCfg.applyTo[cat.id] = cb ? cb.checked : false;
+      });
+      ZenRounding.saveSettings(newCfg);
+      if (window.ZenAudit) ZenAudit.logUpdate('settings', 'financialRounding', { enabled: newCfg.enabled, scope: newCfg.scope, deductionsPolicy: newCfg.deductionsPolicy });
+      UI.toast(lang === 'ar' ? 'تم حفظ إعدادات التقريب' : 'Rounding settings saved', 'success');
+      render();
     };
   }
 

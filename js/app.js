@@ -178,14 +178,21 @@
     const dot = document.getElementById('notif-dot');
     if (!notifList) return;
 
+    // Load read-state (persistent set of notification keys)
+    let readKeys = [];
+    try { readKeys = JSON.parse(localStorage.getItem('agrimasters:notif-read') || '[]'); } catch (e) { readKeys = []; }
+    const readSet = new Set(readKeys);
+
     const notifs = [];
     // Pending leaves
     const pendingLeaves = S.findBy('leaves', (l) => l.status === 'pending');
     if (pendingLeaves.length) {
       notifs.push({
+        key: 'pending-leaves',
         icon: '▣', color: 'warning',
         title: I18n.lang === 'ar' ? 'طلبات إجازة معلقة' : 'Pending Leave Requests',
         body: I18n.lang === 'ar' ? `${pendingLeaves.length} طلب بانتظار المراجعة` : `${pendingLeaves.length} pending review`,
+        timestamp: new Date().toISOString(),
         action: () => Router.go('leaves'),
       });
     }
@@ -197,29 +204,75 @@
     });
     if (upcoming.length) {
       notifs.push({
-        icon: '📄', color: 'info',
+        key: 'contracts-expiring',
+        icon: '▤', color: 'info',
         title: I18n.lang === 'ar' ? 'عقود تنتهي قريباً' : 'Contracts Expiring',
         body: I18n.lang === 'ar' ? `${upcoming.length} عقد خلال 30 يوم` : `${upcoming.length} contracts within 30 days`,
+        timestamp: new Date().toISOString(),
         action: () => Router.go('contracts'),
+      });
+    }
+    // Document expirations (next 30 days)
+    const upcomingDocs = S.findBy('documents', (d) => {
+      if (!d.expiryDate) return false;
+      const days = (new Date(d.expiryDate) - today) / 86400000;
+      return days >= 0 && days <= 30;
+    });
+    if (upcomingDocs.length) {
+      notifs.push({
+        key: 'docs-expiring',
+        icon: '▤', color: 'warning',
+        title: I18n.lang === 'ar' ? 'مستندات تنتهي قريباً' : 'Documents Expiring',
+        body: I18n.lang === 'ar' ? `${upcomingDocs.length} مستند خلال 30 يوم` : `${upcomingDocs.length} documents within 30 days`,
+        timestamp: new Date().toISOString(),
+        action: () => Router.go('documents'),
       });
     }
     // Pending payroll drafts
     const draftPayroll = S.findBy('payroll', (p) => p.status === 'draft');
     if (draftPayroll.length) {
       notifs.push({
+        key: 'draft-payroll',
         icon: 'ج.م', color: 'success',
         title: I18n.lang === 'ar' ? 'مرتبات مسودة' : 'Draft Payroll',
         body: I18n.lang === 'ar' ? `${draftPayroll.length} سجل بانتظار المعالجة` : `${draftPayroll.length} records awaiting processing`,
+        timestamp: new Date().toISOString(),
         action: () => Router.go('payroll'),
       });
     }
-    // Open vacancies with candidates
+    // Open disciplinary cases
+    const openDisciplinary = S.findBy('disciplinary', (d) => d.status === 'open' || d.status === 'under_investigation' || d.status === 'pending_decision');
+    if (openDisciplinary.length) {
+      notifs.push({
+        key: 'open-disciplinary',
+        icon: '!', color: 'danger',
+        title: I18n.lang === 'ar' ? 'واقعات تأديبية مفتوحة' : 'Open Disciplinary Cases',
+        body: I18n.lang === 'ar' ? `${openDisciplinary.length} حالة قيد المعالجة` : `${openDisciplinary.length} cases in progress`,
+        timestamp: new Date().toISOString(),
+        action: () => Router.go('disciplinary'),
+      });
+    }
+    // Offboarding in progress
+    const offboardingInProgress = S.findBy('offboarding', (o) => o.status === 'pending' || o.status === 'approved' || o.status === 'in_progress');
+    if (offboardingInProgress.length) {
+      notifs.push({
+        key: 'offboarding-progress',
+        icon: '⏻', color: 'warning',
+        title: I18n.lang === 'ar' ? 'حالات إنهاء قيد المعالجة' : 'Offboarding In Progress',
+        body: I18n.lang === 'ar' ? `${offboardingInProgress.length} حالة` : `${offboardingInProgress.length} cases`,
+        timestamp: new Date().toISOString(),
+        action: () => Router.go('offboarding'),
+      });
+    }
+    // Open vacancies
     const openVacancies = S.findBy('vacancies', (v) => v.status === 'open');
     if (openVacancies.length) {
       notifs.push({
+        key: 'open-vacancies',
         icon: '♙', color: 'brand',
         title: I18n.lang === 'ar' ? 'وظائف شاغرة' : 'Open Vacancies',
         body: I18n.lang === 'ar' ? `${openVacancies.length} وظيفة مفتوحة` : `${openVacancies.length} open vacancies`,
+        timestamp: new Date().toISOString(),
         action: () => Router.go('recruitment'),
       });
     }
@@ -231,26 +284,77 @@
     });
     if (upcomingLoans.length) {
       notifs.push({
+        key: 'upcoming-loans',
         icon: '$', color: 'warning',
         title: I18n.lang === 'ar' ? 'أقساط قادمة' : 'Upcoming Installments',
         body: I18n.lang === 'ar' ? `${upcomingLoans.length} قسط خلال 7 أيام` : `${upcomingLoans.length} installments within 7 days`,
+        timestamp: new Date().toISOString(),
         action: () => Router.go('loans'),
       });
     }
 
-    if (dot) dot.hidden = notifs.length === 0;
+    const unreadCount = notifs.filter((n) => !readSet.has(n.key)).length;
+    if (dot) dot.hidden = unreadCount === 0;
+    // Update the bell badge
+    const bell = document.getElementById('notif-button');
+    if (bell) {
+      let badge = bell.querySelector('.notif-badge');
+      if (unreadCount > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'notif-badge';
+          bell.appendChild(badge);
+        }
+        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
     notifList.innerHTML = notifs.length === 0 ?
-      `<div class="empty-state" style="padding:30px 10px"><div class="empty-icon">✓</div><h3>${I18n.t('notifications.empty')}</h3></div>` :
-      notifs.map((n) => `
-        <div class="notif-item" data-notif="${notifs.indexOf(n)}">
-          <div class="notif-icon" style="background:var(--${n.color}-100);color:var(--${n.color}-700)">${n.icon}</div>
-          <div class="notif-body"><b>${U.esc(n.title)}</b><p>${U.esc(n.body)}</p></div>
-        </div>
-      `).join('');
-    notifList.querySelectorAll('[data-notif]').forEach((el) => {
+      `<div class="empty-state" style="padding:30px 10px"><div class="empty-icon">✓</div><h3>${I18n.t('notifications.empty')}</h3><p style="color:var(--text-muted);font-size:12px">${I18n.lang === 'ar' ? 'لا توجد إشعارات حالياً' : 'No notifications at this time'}</p></div>` :
+      `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">${notifs.length} ${I18n.lang === 'ar' ? 'إشعار' : 'notifications'} · ${unreadCount} ${I18n.lang === 'ar' ? 'غير مقروء' : 'unread'}</span>
+        ${unreadCount > 0 ? `<button class="btn sm ghost" id="notif-mark-all" style="font-size:11px">${I18n.lang === 'ar' ? 'تعليم الكل كمقروء' : 'Mark all read'}</button>` : ''}
+      </div>` +
+      notifs.map((n) => {
+        const isRead = readSet.has(n.key);
+        return `
+          <div class="notif-item ${isRead ? 'read' : 'unread'}" data-notif-key="${U.esc(n.key)}">
+            <div class="notif-icon" style="background:var(--${n.color}-100);color:var(--${n.color}-700)">${n.icon}</div>
+            <div class="notif-body">
+              <b>${U.esc(n.title)}</b>
+              <p>${U.esc(n.body)}</p>
+              <small style="color:var(--text-muted);font-size:10px">${U.date(n.timestamp)} ${U.time(n.timestamp)}</small>
+            </div>
+            ${!isRead ? '<span class="notif-unread-dot" style="width:8px;height:8px;border-radius:50%;background:var(--brand-500);flex-shrink:0"></span>' : ''}
+          </div>
+        `;
+      }).join('');
+
+    // Wire mark-all-read
+    const markAllBtn = document.getElementById('notif-mark-all');
+    if (markAllBtn) {
+      markAllBtn.onclick = () => {
+        const allKeys = notifs.map((n) => n.key);
+        const newRead = Array.from(new Set([...readKeys, ...allKeys]));
+        localStorage.setItem('agrimasters:notif-read', JSON.stringify(newRead));
+        updateNotifications();
+      };
+    }
+    // Wire individual click — mark as read AND navigate
+    notifList.querySelectorAll('[data-notif-key]').forEach((el) => {
       el.onclick = () => {
-        const idx = parseInt(el.dataset.notif, 10);
-        notifs[idx].action();
+        const key = el.dataset.notifKey;
+        const notif = notifs.find((n) => n.key === key);
+        if (!notif) return;
+        // Mark as read
+        if (!readSet.has(key)) {
+          readSet.add(key);
+          localStorage.setItem('agrimasters:notif-read', JSON.stringify(Array.from(readSet)));
+        }
+        // Navigate
+        notif.action();
         closeNotifDrawer();
       };
     });
@@ -287,11 +391,41 @@
         else if (action === 'close-menu') closeMenu();
         else if (action === 'close-notif') closeNotifDrawer();
         else if (action === 'language') I18n.toggle();
-        else if (action === 'notifications') openNotifDrawer();
+        else if (action === 'notifications') {
+          // Toggle: if open, close; if closed, open
+          const drawer = document.getElementById('notif-drawer');
+          if (drawer && !drawer.hidden) closeNotifDrawer();
+          else openNotifDrawer();
+        }
         else if (action === 'logout') logout();
-        else if (action === 'support') UI.toast(I18n.lang === 'ar' ? 'للدعم: support@zenhr.demo' : 'For support: support@zenhr.demo', 'info');
       });
     });
+
+    // Escape key closes notification drawer and mobile menu
+    if (!window.__escapeWired) {
+      window.__escapeWired = true;
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const notifDrawer = document.getElementById('notif-drawer');
+          if (notifDrawer && !notifDrawer.hidden) {
+            closeNotifDrawer();
+            return;
+          }
+          const sidebar = document.getElementById('sidebar');
+          if (sidebar && sidebar.classList.contains('open')) {
+            closeMenu();
+            return;
+          }
+          // Close any open modal
+          const modalBackdrop = document.querySelector('.modal-backdrop');
+          if (modalBackdrop) {
+            const closeBtn = modalBackdrop.querySelector('[data-close]');
+            if (closeBtn) closeBtn.click();
+            return;
+          }
+        }
+      });
+    }
 
     // Global search
     const search = document.getElementById('global-search');

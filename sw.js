@@ -14,6 +14,7 @@ const CORE_ASSETS = [
   "./js/demo-data.js",
   "./js/services/audit.js",
   "./js/services/export.js",
+  "./js/services/rounding.js",
   "./js/services/backup.js",
   "./js/services/xlsx-import.js",
   "./js/modules/dashboard.js",
