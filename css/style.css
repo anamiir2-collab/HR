@@ -1938,3 +1938,25 @@ button.sp-day { cursor:pointer; }
 .toggle-line input[type="checkbox"]:checked::after { transform:translateX(16px); }
 
 html[dir="rtl"] .toggle-line input[type="checkbox"]:checked::after { transform:translateX(-16px); }
+
+
+/* Employee profile photo and individual work-system fields */
+.employee-photo-field .employee-photo-editor { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
+.employee-photo-editor > img { width:88px; height:88px; object-fit:cover; border-radius:50%; border:2px solid var(--border); background:var(--surface); }
+.employee-photo-placeholder { width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--brand-100); color:var(--brand-700); font-size:22px; font-weight:800; }
+.employee-photo-actions { display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; flex:1; }
+.employee-photo-actions input[type="file"] { max-width:100%; font-size:13px; }
+.employee-photo-actions small { color:var(--text-muted); font-size:12px; }
+.employee-avatar-cell, .employee-roster-cell { display:inline-flex; align-items:center; gap:9px; min-width:0; }
+.employee-mini-photo { width:34px; height:34px; flex:0 0 34px; object-fit:cover; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); }
+.employee-mini-placeholder { display:inline-flex; align-items:center; justify-content:center; color:var(--brand-700); font-size:11px; font-weight:800; }
+.employee-profile-avatar { width:64px; height:64px; flex:0 0 64px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; background:var(--surface-2); }
+.employee-profile-avatar img { width:100%; height:100%; object-fit:cover; }
+.employee-profile-avatar .avatar { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.employee-profile-avatar + div { min-width:0; }
+#emp-form .field textarea, #emp-form .field input, #emp-form .field select { max-width:100%; }
+@media (max-width:640px) {
+  .employee-photo-editor { align-items:flex-start; }
+  .employee-photo-actions { flex-basis:100%; }
+  .employee-mini-photo { width:30px; height:30px; flex-basis:30px; }
+}
