@@ -69,7 +69,7 @@ window.ZenStore = (function () {
     auditEnabled: true,
     // Fingerprint device adapter (informational only — no real connectivity claimed)
     fingerprintDevice: { vendor: '', model: '', adapter: 'csv', lastConnected: null },
-    // Financial rounding (OFF by default; rounds eligible positive amounts DOWN to nearest 5 EGP when ON)
+    // Financial rounding (OFF by default; enabled items round to the nearest 5 EGP)
     financialRounding: {
       enabled: false,
       increment: 5,
