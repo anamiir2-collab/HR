@@ -101,7 +101,7 @@ window.ZenEmployees = (function () {
 
     wrap.innerHTML = UI.buildTable({
       columns: [
-        { label: ZenI18n.t('common.employee'), key: 'name', render: (e) => UI.avatarCell(lang === 'ar' ? e.name : (e.nameEn || e.name), e.id) },
+        { label: ZenI18n.t('common.employee'), key: 'name', render: (e) => `<span class="employee-avatar-cell">${e.profileImage ? `<img class="employee-mini-photo" src="${U.esc(e.profileImage)}" alt="">` : `<span class="employee-mini-photo employee-mini-placeholder">${U.esc(U.initials(e.name))}</span>`}<span>${U.esc(lang === 'ar' ? e.name : (e.nameEn || e.name))}</span></span>` },
         { label: ZenI18n.t('common.department'), key: 'departmentId', render: (e) => U.esc(deptName(e.departmentId)) },
         { label: ZenI18n.t('emp.jobTitle'), key: 'jobTitle', render: (e) => U.esc(lang === 'ar' ? e.jobTitle : e.jobTitleEn) },
         { label: ZenI18n.t('emp.basicSalary'), key: 'basicSalary', render: (e) => U.money(e.basicSalary) },
