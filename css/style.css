@@ -1822,7 +1822,7 @@ table.data { min-width: 100%; }
   overflow: hidden;
   z-index: 90;
 }
-#notif-scrim { z-index: 80; }
+#notif-scrim { z-index: 88; }
 #sidebar { z-index: 85; }
 #scrim { z-index: 80; }
 .modal-backdrop { z-index: 110; }
