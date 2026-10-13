@@ -1863,3 +1863,21 @@ table.data { min-width: 100%; }
   .stat-grid { grid-template-columns: minmax(0, 1fr); }
   .gate-card { padding: 26px 18px; }
 }
+
+
+/* ===== Access gate / app exclusivity hardening ===== */
+/* The HTML hidden attribute must win over component layout declarations. */
+[hidden] { display: none !important; }
+#gate-view[hidden],
+#app[hidden] { display: none !important; }
+#gate-view:not([hidden]) { display: flex; }
+#app:not([hidden]) { display: grid; min-width: 0; }
+
+@media (max-width: 768px) {
+  #app:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+  #app:not([hidden]) > .main { grid-column: 1 / -1; min-width: 0; }
+}
