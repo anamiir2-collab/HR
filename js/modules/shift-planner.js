@@ -213,7 +213,10 @@ window.ZenShiftPlanner = (function () {
         const form = modalBody.querySelector('#sp-order-form');
         if (!form.checkValidity()) { form.reportValidity(); return; }
         const data = Object.fromEntries(new FormData(form).entries());
-        data.holiday = form.elements.holiday.checked;
+        const orderDate = localDate(data.date);
+        const restDays = (S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays) || [];
+        data.holiday = form.elements.holiday.checked || restDays.includes(orderDate.getDay());
+        data.restDay = restDays.includes(orderDate.getDay());
         const previous = S.getCollection('assignmentOrders').find(o => o.employeeId === data.employeeId && o.date === data.date);
         if (previous) { UI.toast(text('يوجد أمر تكليف لهذا الموظف في هذا التاريخ','An order already exists for this employee and date'), 'warning'); return; }
         S.insert('assignmentOrders', { id: 'ao-' + Date.now().toString(36), ...data, createdAt: new Date().toISOString() });
