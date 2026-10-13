@@ -13,7 +13,7 @@ window.ZenShiftPlanner = (function () {
   function shiftLabel(s, lang) { return s ? (lang === 'ar' ? (s.name || s.nameEn) : (s.nameEn || s.name)) : (lang === 'ar' ? 'غير محددة' : 'Unassigned'); }
   function planFor(employeeId) { return S.getCollection('shiftPlans').find(p => p.employeeId === employeeId) || null; }
   function shiftById(id) { return S.getById('shifts', id); }
-  function isFixedWorkday(shift, date) { return !!(shift && shift.workingDays && shift.workingDays.includes(date.getDay())); }
+  function isFixedWorkday(shift, date) { const rest=(S.settings.shiftRules && S.settings.shiftRules.weeklyRestDays)||[]; return !!(shift && shift.workingDays && shift.workingDays.includes(date.getDay()) && !rest.includes(date.getDay())); }
 
   function expectedFor(plan, date) {
     if (!plan) return { type: 'unassigned', shift: null, label: ZenI18n.lang === 'ar' ? 'غير محدد' : 'Unassigned' };
@@ -43,6 +43,7 @@ window.ZenShiftPlanner = (function () {
     const shifts = S.getCollection('shifts').filter(s => s.active !== false);
     const plans = S.getCollection('shiftPlans');
     const orders = S.getCollection('assignmentOrders').slice().sort((a,b) => String(b.date).localeCompare(String(a.date)));
+    const defaultRules = Object.assign({dayCount:3,nightCount:3,offCount:3}, S.settings.shiftRules || {});
     if (!selectedEmployee || !employees.some(e => e.id === selectedEmployee)) selectedEmployee = employees[0]?.id || '';
     const plan = planFor(selectedEmployee);
     const emp = employees.find(e => e.id === selectedEmployee);
@@ -59,9 +60,9 @@ window.ZenShiftPlanner = (function () {
           <label class="field sp-fixed"><span>${text('الوردية الثابتة','Fixed shift')}</span><select name="fixedShiftId">${shiftOptions(plan?.fixedShiftId, text('اختر وردية','Select shift'))}</select></label>
           <label class="field sp-rotating"><span>${text('وردية النهار','Day shift')}</span><select name="dayShiftId">${shiftOptions(plan?.dayShiftId || shifts.find(s => /نهار|صباح|day|morning/i.test((s.name||'')+' '+(s.nameEn||'')) )?.id, text('اختر وردية النهار','Select day shift'))}</select></label>
           <label class="field sp-rotating"><span>${text('وردية الليل','Night shift')}</span><select name="nightShiftId">${shiftOptions(plan?.nightShiftId || shifts.find(s => /ليل|مساء|night|evening/i.test((s.name||'')+' '+(s.nameEn||'')) )?.id, text('اختر وردية الليل','Select night shift'))}</select></label>
-          <label class="field sp-rotating"><span>${text('أيام النهار','Day-shift days')}</span><input type="number" min="1" max="31" name="dayCount" value="${plan?.dayCount || 3}"></label>
-          <label class="field sp-rotating"><span>${text('أيام الليل','Night-shift days')}</span><input type="number" min="1" max="31" name="nightCount" value="${plan?.nightCount || 3}"></label>
-          <label class="field sp-rotating"><span>${text('أيام الإجازة في الدورة','Cycle off days')}</span><input type="number" min="1" max="31" name="offCount" value="${plan?.offCount || 3}"></label>
+          <label class="field sp-rotating"><span>${text('أيام النهار','Day-shift days')}</span><input type="number" min="1" max="31" name="dayCount" value="${plan?.dayCount || defaultRules.dayCount}"></label>
+          <label class="field sp-rotating"><span>${text('أيام الليل','Night-shift days')}</span><input type="number" min="1" max="31" name="nightCount" value="${plan?.nightCount || defaultRules.nightCount}"></label>
+          <label class="field sp-rotating"><span>${text('أيام الإجازة في الدورة','Cycle off days')}</span><input type="number" min="1" max="31" name="offCount" value="${plan?.offCount || defaultRules.offCount}"></label>
           <label class="field"><span>${text('تاريخ بداية الدورة','Cycle anchor date')}</span><input type="date" name="anchorDate" value="${plan?.anchorDate || dateKey(new Date())}" required></label>
           <div class="full actions"><button class="btn primary" type="submit">${text('حفظ جدول الموظف','Save employee schedule')}</button><button class="btn secondary" type="button" id="sp-clear">${text('إزالة الجدول','Remove schedule')}</button></div>
         </form>
@@ -84,7 +85,9 @@ window.ZenShiftPlanner = (function () {
     modeVisibility();
     modeSelect.onchange = modeVisibility;
     root.querySelector('#sp-employee').onchange = e => { selectedEmployee = e.target.value; render(); };
-    root.querySelector('#sp-month').onchange = e => { selectedMonth = e.target.value || monthKey(new Date()); renderCalendar(); };
+    root.querySelector('#sp-month').onchange = e => { selectedMonth = e.target.value || monthKey(new Date()); renderCalendar(); renderSearchRoster(); };
+    root.querySelector('#sp-roster-search').oninput = renderSearchRoster;
+    root.querySelector('#sp-roster-date').onchange = renderSearchRoster;
     form.onsubmit = e => {
       e.preventDefault();
       if (!form.reportValidity()) return;
@@ -109,6 +112,7 @@ window.ZenShiftPlanner = (function () {
     };
     root.querySelector('#sp-order').onclick = () => showOrderForm();
     renderCalendar();
+    renderSearchRoster();
     const tbody = root.querySelector('#sp-orders');
     tbody.innerHTML = orders.length ? orders.map(o => {
       const e = employees.find(x => x.id === o.employeeId);
@@ -147,7 +151,44 @@ window.ZenShiftPlanner = (function () {
       cells += '<button type="button" class="sp-day ' + cls + '" data-sp-date="' + key + '" title="' + U.esc(title) + '"><b>' + d + '</b><span>' + U.esc(shiftName) + '</span>' + (order ? '<small>' + text('تكليف','Assigned') + '</small>' : (isFriday && !isOff ? '<small>' + text('جمعة','Friday') + '</small>' : '')) + '</button>';
     }
     root.innerHTML = '<div class="sp-calendar">' + cells + '</div><div class="sp-legend"><span class="work">● ' + text('عمل','Work') + '</span><span class="off">● ' + text('إجازة','Off') + '</span><span class="assigned">● ' + text('أمر تكليف / عطلة','Assignment / holiday') + '</span></div>';
-    root.querySelectorAll('[data-sp-date]').forEach(b => b.onclick = () => showOrderForm(b.dataset.spDate));
+    root.querySelectorAll('[data-sp-date]').forEach(b => b.onclick = () => showShiftRoster(b.dataset.spDate));
+  }
+
+
+  function actualFor(employeeId, date) {
+    const key = dateKey(date);
+    const order = S.getCollection('assignmentOrders').find(o => o.employeeId === employeeId && o.date === key);
+    const plan = planFor(employeeId);
+    const base = expectedFor(plan, date);
+    if (order) return { type:'order', shift:shiftById(order.shiftId), order, mode:'assignment' };
+    return { type:base.type, shift:base.shift, order:null, mode:plan ? plan.mode : 'none' };
+  }
+
+  function showShiftRoster(dateValue) {
+    const lang=ZenI18n.lang, ar=lang==='ar', t=(a,e)=>ar?a:e, date=localDate(dateValue);
+    const employees=S.getCollection('employees').filter(e=>e.employmentStatus==='active'||e.employmentStatus==='on_leave');
+    const selected=actualFor(selectedEmployee,date);
+    const roster=employees.map(e=>({employee:e,...actualFor(e.id,date)})).filter(x=>
+      selected.shift ? x.shift && x.shift.id===selected.shift.id : !x.shift && x.type==='off'
+    );
+    const rows=roster.map(x=>'<tr><td>'+U.esc(ar?x.employee.name:(x.employee.nameEn||x.employee.name))+'</td><td>'+U.esc(x.employee.id)+'</td><td>'+U.esc(x.shift?shiftLabel(x.shift,lang):(ar?'إجازة':'Off'))+'</td><td><span class="badge '+(x.mode==='fixed'?'info':x.mode==='rotating'?'success':'warning')+'">'+U.esc(x.order?t('أمر تكليف','Assignment order'):x.mode==='fixed'?t('ثابتة','Fixed'):x.mode==='rotating'?t('دورية','Rotating'):t('غير محددة','Unassigned'))+'</span></td></tr>').join('');
+    UI.modal({title:t('كشف الوردية — ','Shift roster — ')+dateValue,size:'lg',body:'<div class="table-scroll"><table class="data"><thead><tr><th>'+t('الموظف','Employee')+'</th><th>'+t('الرقم','ID')+'</th><th>'+t('الوردية','Shift')+'</th><th>'+t('نوع التخصيص','Assignment type')+'</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">'+t('لا يوجد موظفون في هذه الوردية','No employees assigned to this shift')+'</td></tr>')+'</tbody></table></div>',footer:[
+      {label:t('إغلاق','Close'),kind:'secondary',onClick:m=>m.close()},
+      {label:t('إنشاء أمر تكليف','Create assignment order'),kind:'primary',onClick:m=>{m.close();showOrderForm(dateValue);}}
+    ]});
+  }
+
+  function renderSearchRoster() {
+    const root=document.getElementById('sp-roster-results'); if(!root)return;
+    const lang=ZenI18n.lang, ar=lang==='ar', t=(a,e)=>ar?a:e;
+    const q=(document.getElementById('sp-roster-search')?.value||'').trim().toLowerCase();
+    const dateValue=document.getElementById('sp-roster-date')?.value||dateKey(new Date());
+    const date=localDate(dateValue);
+    const rows=S.getCollection('employees').filter(e=>(e.employmentStatus==='active'||e.employmentStatus==='on_leave')&&(!q||String(e.name||'').toLowerCase().includes(q)||String(e.nameEn||'').toLowerCase().includes(q)||String(e.id||'').toLowerCase().includes(q))).map(e=>{
+      const a=actualFor(e.id,date);
+      return '<tr><td>'+U.esc(ar?e.name:(e.nameEn||e.name))+'</td><td>'+U.esc(e.id)+'</td><td>'+U.esc(a.shift?shiftLabel(a.shift,lang):(a.type==='off'?t('إجازة','Off'):t('غير محددة','Unassigned')) )+'</td><td>'+t(a.mode==='fixed'?'ثابتة':a.mode==='rotating'?'دورية':a.mode==='assignment'?'أمر تكليف':'غير محددة',a.mode==='fixed'?'Fixed':a.mode==='rotating'?'Rotating':a.mode==='assignment'?'Assignment order':'Unassigned')+'</td></tr>';
+    }).join('');
+    root.innerHTML='<div class="table-scroll"><table class="data"><thead><tr><th>'+t('الموظف','Employee')+'</th><th>'+t('الرقم','ID')+'</th><th>'+t('الوردية في التاريخ المحدد','Shift on selected date')+'</th><th>'+t('المصدر','Source')+'</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">'+t('لا توجد نتائج','No results')+'</td></tr>')+'</tbody></table></div>';
   }
 
   function showOrderForm(dateValue) {
