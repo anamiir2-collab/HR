@@ -154,6 +154,30 @@ window.ZenEmployees = (function () {
         ${UI.formField({ label: ZenI18n.t('emp.employmentType'), name: 'employmentType', type: 'select', value: emp?.employmentType || 'full_time', options: ['full_time', 'part_time', 'contract', 'intern'].map((t) => ({ value: t, label: ZenI18n.t('emp.' + t) })) })}
         ${UI.formField({ label: ZenI18n.t('emp.employmentStatus'), name: 'employmentStatus', type: 'select', value: emp?.employmentStatus || 'active', options: ['active', 'on_leave', 'inactive', 'resigned', 'terminated'].map((s) => ({ value: s, label: ZenI18n.t('status.' + s) })) })}
         ${UI.formField({ label: ZenI18n.t('emp.basicSalary'), name: 'basicSalary', type: 'number', value: emp?.basicSalary, required: true, attrs: ' min="0" step="100"' })}
+        <div class="field full employee-photo-field">
+          <span>${lang === 'ar' ? 'الصورة الشخصية' : 'Profile picture'}</span>
+          <div class="employee-photo-editor">
+            <img id="emp-photo-preview" src="${U.esc(emp?.profileImage || '')}" alt="" ${emp?.profileImage ? '' : 'hidden'}>
+            <div id="emp-photo-placeholder" class="employee-photo-placeholder" ${emp?.profileImage ? 'hidden' : ''}>${U.esc(U.initials(emp?.name || (lang === 'ar' ? 'موظف' : 'Employee')))}</div>
+            <div class="employee-photo-actions">
+              <input id="emp-photo-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="${lang === 'ar' ? 'رفع صورة شخصية' : 'Upload profile picture'}">
+              <small>${lang === 'ar' ? 'الصورة تُضغط وتُحفظ محليًا على هذا الجهاز.' : 'The image is resized and stored locally on this device.'}</small>
+              <button type="button" class="btn sm ghost" id="emp-photo-remove">${lang === 'ar' ? 'إزالة الصورة' : 'Remove photo'}</button>
+            </div>
+          </div>
+        </div>
+        <div class="field"><span>${lang === 'ar' ? 'ساعات العمل الشهرية المستهدفة' : 'Target monthly hours'}</span><input name="monthlyHours" type="number" min="0" max="400" step="1" value="${emp?.monthlyHours ?? ''}" placeholder="${S.settings.monthlyWorkingHours || 208}"></div>
+        <div class="field"><span>${lang === 'ar' ? 'ساعات العمل اليومية المستهدفة' : 'Target daily hours'}</span><input name="dailyHours" type="number" min="0" max="24" step="0.5" value="${emp?.dailyHours ?? ''}" placeholder="8"></div>
+        <div class="field"><span>${lang === 'ar' ? 'نظام أيام الراحة' : 'Rest-day system'}</span><select name="restDaysMode">
+          <option value="default" ${(emp?.restDaysMode || 'default') === 'default' ? 'selected' : ''}>${lang === 'ar' ? 'استخدام النظام العام / جدول الورديات' : 'Use company / shift schedule'}</option>
+          <option value="dates" ${emp?.restDaysMode === 'dates' ? 'selected' : ''}>${lang === 'ar' ? 'تواريخ راحة محددة' : 'Specific rest dates'}</option>
+          <option value="monthlyDays" ${emp?.restDaysMode === 'monthlyDays' ? 'selected' : ''}>${lang === 'ar' ? 'أيام ثابتة من كل شهر (مثل 1 و15)' : 'Recurring days each month (e.g. 1 and 15)'}</option>
+          <option value="weekly" ${emp?.restDaysMode === 'weekly' ? 'selected' : ''}>${lang === 'ar' ? 'أيام أسبوعية مخصصة' : 'Custom weekdays'}</option>
+          <option value="none" ${emp?.restDaysMode === 'none' ? 'selected' : ''}>${lang === 'ar' ? 'بدون أيام راحة' : 'No rest days'}</option>
+        </select></div>
+        <label class="field"><span>${lang === 'ar' ? 'تواريخ الراحة (YYYY-MM-DD، افصل بفاصلة)' : 'Rest dates (YYYY-MM-DD, comma-separated)'}</span><textarea name="restDates" rows="2" placeholder="2026-10-01, 2026-10-15">${U.esc(Array.isArray(emp?.restDates) ? emp.restDates.join(', ') : (emp?.restDates || ''))}</textarea></label>
+        <label class="field"><span>${lang === 'ar' ? 'أرقام أيام الشهر للراحة (1–31)' : 'Rest day numbers each month (1–31)'}</span><input name="recurringRestDays" value="${U.esc(Array.isArray(emp?.recurringRestDays) ? emp.recurringRestDays.join(', ') : (emp?.recurringRestDays || ''))}" placeholder="1, 15"></label>
+        <label class="field full"><span>${lang === 'ar' ? 'ملاحظات نظام العمل الخاص' : 'Flexible work-system notes'}</span><textarea name="workSystemNotes" rows="2">${U.esc(emp?.workSystemNotes || '')}</textarea></label>
         ${UI.formField({ label: ZenI18n.t('emp.hireDate'), name: 'hireDate', type: 'date', value: emp?.hireDate, required: true })}
         ${UI.formField({ label: ZenI18n.t('emp.contractStart'), name: 'contractStart', type: 'date', value: emp?.contractStart })}
         ${UI.formField({ label: ZenI18n.t('emp.contractEnd'), name: 'contractEnd', type: 'date', value: emp?.contractEnd })}
@@ -177,12 +201,77 @@ window.ZenEmployees = (function () {
         { label: ZenI18n.t('common.save'), kind: 'primary', onClick: (mm, body) => saveForm(mm, body, id) }
       ]
     });
+    const form = m.bodyEl.querySelector('#emp-form');
+    if (form) {
+      form.dataset.profileImage = emp?.profileImage || '';
+      const fileInput = form.querySelector('#emp-photo-file');
+      const preview = form.querySelector('#emp-photo-preview');
+      const placeholder = form.querySelector('#emp-photo-placeholder');
+      const remove = form.querySelector('#emp-photo-remove');
+      function refreshPhoto() {
+        const src = form.dataset.profileImage || '';
+        preview.src = src;
+        preview.hidden = !src;
+        placeholder.hidden = !!src;
+      }
+      fileInput.onchange = async () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+          UI.toast(lang === 'ar' ? 'اختر صورة JPG أو PNG أو WebP' : 'Choose a JPG, PNG or WebP image', 'warning');
+          fileInput.value = '';
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          UI.toast(lang === 'ar' ? 'حجم الصورة الأصلي يجب ألا يتجاوز 8 ميجابايت' : 'Original image must be under 8 MB', 'warning');
+          fileInput.value = '';
+          return;
+        }
+        try {
+          const dataUrl = await compressEmployeePhoto(file);
+          form.dataset.profileImage = dataUrl;
+          refreshPhoto();
+        } catch (_) {
+          UI.toast(lang === 'ar' ? 'تعذّر قراءة الصورة' : 'Could not read image', 'error');
+        }
+      };
+      remove.onclick = () => { form.dataset.profileImage = ''; fileInput.value = ''; refreshPhoto(); };
+    }
+  }
+
+  function compressEmployeePhoto(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const max = 420, scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.78));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   function saveForm(modal, body, id) {
     const form = body.querySelector('#emp-form');
     if (!form.checkValidity()) { form.reportValidity(); return; }
     const data = UI.readForm(form);
+    data.profileImage = form.dataset.profileImage || '';
+    data.monthlyHours = data.monthlyHours === '' ? null : Number(data.monthlyHours);
+    data.dailyHours = data.dailyHours === '' ? null : Number(data.dailyHours);
+    data.restDaysMode = data.restDaysMode || 'default';
+    data.restDates = String(data.restDates || '').split(/[\\n,;]+/).map(v => v.trim()).filter(v => /^\\d{4}-\\d{2}-\\d{2}$/.test(v));
+    data.recurringRestDays = String(data.recurringRestDays || '').split(/[\\s,;]+/).map(Number).filter(v => Number.isInteger(v) && v >= 1 && v <= 31);
+    data.workSystemNotes = data.workSystemNotes || '';
     if (!data.name || !data.departmentId || !data.hireDate || !data.basicSalary) {
       UI.toast(ZenI18n.t('common.required'), 'warning');
       return;
@@ -200,6 +289,8 @@ window.ZenEmployees = (function () {
         basicSalary: Number(data.basicSalary), hireDate: data.hireDate, contractStart: data.contractStart, contractEnd: data.contractEnd,
         shiftId: data.shiftId, workLocation: data.workLocation, phone: data.phone, email: data.email,
         address: data.address, emergencyContact: data.emergencyContact, notes: data.notes,
+        profileImage: data.profileImage, monthlyHours: data.monthlyHours, dailyHours: data.dailyHours,
+        restDaysMode: data.restDaysMode, restDates: data.restDates, recurringRestDays: data.recurringRestDays, workSystemNotes: data.workSystemNotes,
       });
       if (window.ZenAudit) ZenAudit.logUpdate('employees', id, { fields: Object.keys(data), employeeName: data.name });
       UI.toast(lang() === 'ar' ? 'تم تحديث الموظف' : 'Employee updated', 'success');
@@ -218,7 +309,9 @@ window.ZenEmployees = (function () {
         employmentStatus: data.employmentStatus, hireDate: data.hireDate, contractStart: data.contractStart || data.hireDate,
         contractEnd: data.contractEnd, basicSalary: Number(data.basicSalary), shiftId: data.shiftId,
         workLocation: data.workLocation, phone: data.phone, email: data.email, address: data.address,
-        emergencyContact: data.emergencyContact, notes: data.notes, isDemo: false,
+        emergencyContact: data.emergencyContact, notes: data.notes, profileImage: data.profileImage,
+        monthlyHours: data.monthlyHours, dailyHours: data.dailyHours, restDaysMode: data.restDaysMode,
+        restDates: data.restDates, recurringRestDays: data.recurringRestDays, workSystemNotes: data.workSystemNotes, isDemo: false,
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
       if (window.ZenAudit) ZenAudit.logCreate('employees', newId, { employeeName: data.name, departmentId: data.departmentId });
@@ -245,7 +338,7 @@ window.ZenEmployees = (function () {
 
     const body = `
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <div class="avatar ${U.avatarColor(emp.name)}" style="width:64px;height:64px;font-size:24px;border-radius:50%">${U.esc(U.initials(emp.name))}</div>
+        <div class="employee-profile-avatar">${emp.profileImage ? `<img src="${U.esc(emp.profileImage)}" alt="">` : `<span class="avatar ${U.avatarColor(emp.name)}">${U.esc(U.initials(emp.name))}</span>`}</div>
         <div>
           <h3 style="margin:0 0 4px">${U.esc(lang === 'ar' ? emp.name : (emp.nameEn || emp.name))}</h3>
           <p style="margin:0;color:var(--text-muted);font-size:13px">${U.esc(emp.id)} · ${U.esc(lang === 'ar' ? emp.jobTitle : emp.jobTitleEn)}</p>
@@ -265,12 +358,16 @@ window.ZenEmployees = (function () {
         ${detailItem(ZenI18n.t('emp.contractEnd'), U.date(emp.contractEnd))}
         ${detailItem(ZenI18n.t('emp.location'), emp.workLocation || '—')}
         ${detailItem(ZenI18n.t('emp.shift'), shift ? (lang === 'ar' ? shift.name : shift.nameEn) + ' (' + shift.startTime + '-' + shift.endTime + ')' : '—')}
+        ${detailItem(lang === 'ar' ? 'ساعات العمل الشهرية' : 'Monthly target hours', emp.monthlyHours ?? S.settings.monthlyWorkingHours)}
+        ${detailItem(lang === 'ar' ? 'ساعات العمل اليومية' : 'Daily target hours', emp.dailyHours ?? '—')}
+        ${detailItem(lang === 'ar' ? 'نظام الراحة' : 'Rest system', ({default:lang==='ar'?'النظام العام': 'Company/shift default',dates:lang==='ar'?'تواريخ محددة':'Specific dates',monthlyDays:lang==='ar'?'أيام شهرية متكررة':'Recurring monthly days',weekly:lang==='ar'?'أيام أسبوعية مخصصة':'Custom weekdays',none:lang==='ar'?'بدون راحة':'No rest days'})[emp.restDaysMode || 'default'])}
         ${detailItem(ZenI18n.t('emp.phone'), emp.phone || '—')}
         ${detailItem(ZenI18n.t('emp.email'), emp.email || '—')}
         ${detailItem(ZenI18n.t('emp.address'), emp.address || '—')}
         ${detailItem(ZenI18n.t('emp.emergency'), emp.emergencyContact || '—')}
       </div>
       ${emp.notes ? `<p style="margin:12px 0 0;font-size:13px"><b>${ZenI18n.t('common.notes')}:</b> ${U.esc(emp.notes)}</p>` : ''}
+      ${emp.workSystemNotes ? `<p style="margin:12px 0 0;font-size:13px"><b>${lang === 'ar' ? 'ملاحظات نظام العمل:' : 'Work-system notes:'}</b> ${U.esc(emp.workSystemNotes)}</p>` : ''}
 
       <div class="tabs mt-16">
         <div class="tab active" data-tab="payroll">${lang === 'ar' ? 'المرتبات' : 'Payroll'} (${payroll.length})</div>
