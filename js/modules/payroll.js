@@ -45,6 +45,7 @@ window.ZenPayroll = (function () {
           <button class="btn primary" id="pr-generate">${lang === 'ar' ? 'توليد المرتبات' : 'Generate Payroll'}</button>
         </div>
       </div>
+      <div id="pr-rounding-settings" class="rounding-settings"></div>
       <div id="pr-summary" class="stat-grid mb-16"></div>
       <div id="pr-table-wrap"></div>
       <div id="pr-pagination"></div>
@@ -58,8 +59,57 @@ window.ZenPayroll = (function () {
     document.getElementById('pr-status-filter').onchange = (e) => { state.statusFilter = e.target.value; state.page = 1; renderTable(); };
     document.getElementById('pr-generate').onclick = () => generateMonth();
     document.getElementById('pr-export').onclick = () => exportData();
+    renderRoundingSettings();
 
     renderTable();
+  }
+
+
+  function renderRoundingSettings() {
+    const root = document.getElementById('pr-rounding-settings');
+    if (!root) return;
+    const lang = ZenI18n.lang;
+    const ar = lang === 'ar';
+    const t = (a, e) => ar ? a : e;
+    const cfg = ZenRounding.getSettings();
+    const options = [
+      ['basicSalary', t('الراتب الأساسي', 'Basic salary')],
+      ['allowances', t('البدلات', 'Allowances')],
+      ['bonuses', t('الحوافز والمكافآت', 'Incentives & bonuses')],
+      ['overtime', t('الأوفر تايم', 'Overtime')],
+      ['deductions', t('الخصومات', 'Deductions')],
+      ['penalties', t('الجزاءات', 'Penalties')],
+      ['advances', t('أقساط السلف', 'Loan installments')],
+      ['insurance', t('تأمين الموظف', 'Employee insurance')],
+      ['tax', t('الضريبة', 'Tax')],
+      ['otherDeductions', t('خصومات أخرى', 'Other deductions')],
+    ];
+    root.innerHTML = `
+      <section class="card">
+        <div class="card-head"><div><h3>${t('تقريب عناصر المرتب والبدلات','Payroll item rounding')}</h3><p class="muted">${t('فعّل التقريب لكل بند بشكل مستقل. يتم التقريب لأقرب 5 جنيهات، وتُحفظ الاختيارات على هذا الجهاز.','Enable rounding per item. Amounts round to the nearest 5 EGP; choices are saved on this device.')}</p></div><span class="badge ${cfg.enabled ? 'success' : 'gray'}">${cfg.enabled ? t('مفعّل','Enabled') : t('غير مفعّل','Disabled')}</span></div>
+        <div class="rounding-setting-grid">
+          ${options.map(([key,label]) => `<label class="rounding-option"><span>${label}</span><input type="checkbox" data-round-category="${key}" ${cfg.enabled && cfg.applyTo[key] !== false ? 'checked' : ''} aria-label="${label}"></label>`).join('')}
+        </div>
+        <p class="muted" style="margin:10px 0 0;font-size:12px">${t('مثال: 2522 ← 2520، و2524 ← 2525. التغيير يطبق على المرتبات التي تُحسب أو تُنشأ بعد تعديل الإعدادات.','Example: 2522 → 2520 and 2524 → 2525. Changes apply to payroll calculated or generated after updating these settings.')}</p>
+      </section>`;
+    root.querySelectorAll('[data-round-category]').forEach(input => input.addEventListener('change', () => {
+      const next = ZenRounding.getSettings();
+      const applyTo = {};
+      root.querySelectorAll('[data-round-category]').forEach(box => applyTo[box.dataset.roundCategory] = box.checked);
+      next.applyTo = Object.assign({}, next.applyTo, applyTo);
+      next.enabled = Object.values(applyTo).some(Boolean);
+      next.increment = 5;
+      ZenRounding.saveSettings(next);
+      renderRoundingSettings();
+      UI.toast(t('تم حفظ إعدادات التقريب','Rounding settings saved'), 'success');
+    }));
+  }
+
+  function roundPayrollAmount(category, amount) {
+    const value = Number(amount) || 0;
+    const cfg = ZenRounding.getSettings();
+    if (!cfg.enabled || cfg.applyTo[category] === false) return value;
+    return ZenRounding.roundDown(value, 5);
   }
 
   function getFiltered() {
@@ -254,10 +304,18 @@ window.ZenPayroll = (function () {
           if (!form.checkValidity()) { form.reportValidity(); return; }
           const data = UI.readForm(form);
           ['basicSalary', 'allowances', 'rewards', 'overtime', 'deductions', 'penalties', 'loanInstallment', 'otherAdjustments'].forEach((k) => data[k] = Number(data[k]) || 0);
-          // Recalculate
+          // Round each enabled component independently before calculating totals.
+          data.basicSalary = roundPayrollAmount('basicSalary', data.basicSalary);
+          data.allowances = roundPayrollAmount('allowances', data.allowances);
+          data.rewards = roundPayrollAmount('bonuses', data.rewards);
+          data.overtime = roundPayrollAmount('overtime', data.overtime);
+          data.deductions = roundPayrollAmount('deductions', data.deductions);
+          data.penalties = roundPayrollAmount('penalties', data.penalties);
+          data.loanInstallment = roundPayrollAmount('advances', data.loanInstallment);
+          data.otherAdjustments = roundPayrollAmount('otherDeductions', data.otherAdjustments);
           const gross = data.basicSalary + data.allowances + data.rewards + data.overtime;
-          const insuranceEmp = Math.round(data.basicSalary * (S.settings.insuranceEmployeeRate / 100));
-          const tax = estimateTax(gross, S.settings.taxBrackets);
+          const insuranceEmp = roundPayrollAmount('insurance', Math.round(data.basicSalary * (S.settings.insuranceEmployeeRate / 100)));
+          const tax = roundPayrollAmount('tax', estimateTax(gross, S.settings.taxBrackets));
           const totalDed = data.deductions + data.penalties + insuranceEmp + tax + data.loanInstallment + data.otherAdjustments;
           const net = gross - totalDed;
           Object.assign(data, {
@@ -295,19 +353,18 @@ window.ZenPayroll = (function () {
         employees.forEach((emp) => {
           if (existingIds.has(emp.id)) return;
           if (emp.hireDate > ym + '-28') return;
-          const basic = emp.basicSalary;
-          // Sum applicable allowances/rewards/etc for current month
-          const allowances = S.findBy('allowances', (a) => a.employeeId === emp.id && a.status === 'active').reduce((s, a) => s + a.amount, 0);
-          const rewards = S.findBy('rewards', (r) => r.employeeId === emp.id && r.status === 'active').reduce((s, r) => s + r.amount, 0);
-          const deductions = S.findBy('deductions', (d) => d.employeeId === emp.id && d.status === 'active').reduce((s, d) => s + d.amount, 0);
-          const penalties = S.findBy('penalties', (p) => p.employeeId === emp.id && p.status === 'active').reduce((s, p) => s + p.amount, 0);
-          const insuranceEmp = Math.round(basic * (S.settings.insuranceEmployeeRate / 100));
-          const tax = estimateTax(basic + allowances + rewards, S.settings.taxBrackets);
+          const basic = roundPayrollAmount('basicSalary', emp.basicSalary);
+          // Sum applicable allowances/rewards/etc for current month and round enabled components.
+          const allowances = roundPayrollAmount('allowances', S.findBy('allowances', (a) => a.employeeId === emp.id && a.status === 'active').reduce((s, a) => s + a.amount, 0));
+          const rewards = roundPayrollAmount('bonuses', S.findBy('rewards', (r) => r.employeeId === emp.id && r.status === 'active').reduce((s, r) => s + r.amount, 0));
+          const deductions = roundPayrollAmount('deductions', S.findBy('deductions', (d) => d.employeeId === emp.id && d.status === 'active').reduce((s, d) => s + d.amount, 0));
+          const penalties = roundPayrollAmount('penalties', S.findBy('penalties', (p) => p.employeeId === emp.id && p.status === 'active').reduce((s, p) => s + p.amount, 0));
+          const insuranceEmp = roundPayrollAmount('insurance', Math.round(basic * (S.settings.insuranceEmployeeRate / 100)));
+          const tax = roundPayrollAmount('tax', estimateTax(basic + allowances + rewards, S.settings.taxBrackets));
           // Loan installment
           const activeLoans = S.findBy('loans', (l) => l.employeeId === emp.id && l.status === 'active');
-          const loanInstallment = activeLoans.reduce((s, l) => s + l.installmentAmount, 0);
+          const loanInstallment = roundPayrollAmount('advances', activeLoans.reduce((s, l) => s + l.installmentAmount, 0));
           const gross = basic + allowances + rewards;
-          const totalDed = deductions + penalties + insuranceEmp + tax + loanInstallment;
           const net = gross - totalDed;
           S.insert('payroll', {
             id: 'pr-' + ym + '-' + emp.id,
