@@ -1800,3 +1800,66 @@ html[dir="rtl"] .alert ol, html[dir="rtl"] .alert ul { padding-left: 0; padding-
 .rounding-comparison th { background: var(--brand-100); color: var(--brand-700); padding: 8px; font-size: 12px; text-align: start; }
 .rounding-comparison td { padding: 8px; border-bottom: 1px solid var(--border); font-size: 12px; }
 .rounding-comparison tr:last-child td { border-bottom: none; font-weight: 700; background: var(--brand-50); }
+
+
+/* ===== Responsive and visibility hardening (2026-10) ===== */
+/* Authoritative HTML hidden behavior: component display rules must never override it. */
+[hidden] { display: none !important; }
+
+html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+body { min-height: 100vh; min-height: 100dvh; }
+.app { width: 100%; min-width: 0; min-height: 100vh; min-height: 100dvh; }
+.main, .content, .topbar, .heading-left, .top-actions { min-width: 0; }
+.content { overflow-x: auto; overscroll-behavior-x: contain; }
+.table-wrap { max-width: 100%; min-width: 0; overflow: hidden; }
+.table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+table.data { min-width: 100%; }
+.drawer {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
+  z-index: 90;
+}
+#notif-scrim { z-index: 80; }
+#sidebar { z-index: 85; }
+#scrim { z-index: 80; }
+.modal-backdrop { z-index: 110; }
+#toast-root { position: relative; z-index: 120; }
+
+@media (max-width: 768px) {
+  .app { display: block; }
+  .main { width: 100%; max-width: 100%; min-height: 100vh; min-height: 100dvh; }
+  .sidebar { height: 100vh; height: 100dvh; }
+  .topbar {
+    height: auto;
+    min-height: var(--topbar-h);
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .heading-left { flex: 1 1 auto; gap: 8px; }
+  .top-actions { flex: 0 1 auto; gap: 6px; }
+  .breadcrumbs { overflow-wrap: anywhere; }
+  .content { padding: 14px; }
+  .drawer { width: min(360px, 92vw); max-width: 92vw; }
+  .table-wrap { overflow: hidden; }
+  .table-scroll { display: block; width: 100%; overflow-x: auto; }
+  .table-scroll table { min-width: 620px; }
+  .card, .panel, .form-grid > *, .detail-grid > * { min-width: 0; }
+}
+@media (max-width: 430px) {
+  .topbar { align-items: flex-start; }
+  .heading-left { flex: 1 1 100%; }
+  .top-actions { width: 100%; justify-content: flex-end; }
+  .searchbox { min-width: 0; max-width: 100%; }
+  #global-search { min-width: 0; width: 100%; }
+  .content { padding: 12px; }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-card, .card { min-width: 0; }
+}
+@media (max-width: 360px) {
+  .stat-grid { grid-template-columns: minmax(0, 1fr); }
+  .gate-card { padding: 26px 18px; }
+}
