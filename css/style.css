@@ -1936,3 +1936,5 @@ button.sp-day { cursor:pointer; }
 .toggle-line input[type="checkbox"]::after { content:""; position:absolute; top:2px; inset-inline-start:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .18s; }
 .toggle-line input[type="checkbox"]:checked { background:var(--brand-600); }
 .toggle-line input[type="checkbox"]:checked::after { transform:translateX(16px); }
+
+html[dir="rtl"] .toggle-line input[type="checkbox"]:checked::after { transform:translateX(-16px); }
