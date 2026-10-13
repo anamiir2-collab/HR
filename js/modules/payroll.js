@@ -365,6 +365,7 @@ window.ZenPayroll = (function () {
           const activeLoans = S.findBy('loans', (l) => l.employeeId === emp.id && l.status === 'active');
           const loanInstallment = roundPayrollAmount('advances', activeLoans.reduce((s, l) => s + l.installmentAmount, 0));
           const gross = basic + allowances + rewards;
+          const totalDed = deductions + penalties + insuranceEmp + tax + loanInstallment;
           const net = gross - totalDed;
           S.insert('payroll', {
             id: 'pr-' + ym + '-' + emp.id,
