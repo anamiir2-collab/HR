@@ -158,7 +158,7 @@ window.ZenPayroll = (function () {
 
     wrap.innerHTML = UI.buildTable({
       columns: [
-        { label: ZenI18n.t('common.employee'), render: (p) => { const e = empMap[p.employeeId]; return e ? UI.avatarCell(lang === 'ar' ? e.name : (e.nameEn || e.name), p.employeeId) : U.esc(p.employeeId); } },
+        { label: ZenI18n.t('common.employee'), render: (p) => { const e = empMap[p.employeeId]; return e ? `<span class="employee-avatar-cell">${e.profileImage ? `<img class="employee-mini-photo" src="${U.esc(e.profileImage)}" alt="">` : `<span class="employee-mini-photo employee-mini-placeholder">${U.esc(U.initials(e.name))}</span>`}<span>${U.esc(lang === 'ar' ? e.name : (e.nameEn || e.name))}</span></span>` : U.esc(p.employeeId); } },
         { label: ZenI18n.t('emp.basicSalary'), render: (p) => U.money(p.basicSalary) },
         { label: lang === 'ar' ? 'بدلات' : 'Allow.', render: (p) => U.money(p.allowances) },
         { label: lang === 'ar' ? 'مكافآت' : 'Rewards', render: (p) => U.money(p.rewards) },
@@ -244,8 +244,7 @@ window.ZenPayroll = (function () {
     }
 
     const body = `
-      <h3 style="margin:0 0 4px">${U.esc(emp ? emp.name : p.employeeId)}</h3>
-      <p style="margin:0 0 16px;color:var(--text-muted);font-size:13px">${U.esc(p.employeeId)} · ${U.monthLabel(p.period)}</p>
+      <div class="employee-roster-cell" style="margin-bottom:12px">${emp?.profileImage ? `<img class="employee-mini-photo" style="width:52px;height:52px;flex-basis:52px" src="${U.esc(emp.profileImage)}" alt="">` : ''}<div><h3 style="margin:0 0 4px">${U.esc(emp ? emp.name : p.employeeId)}</h3><p style="margin:0;color:var(--text-muted);font-size:13px">${U.esc(p.employeeId)} · ${U.monthLabel(p.period)}</p></div></div>
       <div class="detail-grid">
         <div class="detail-item"><span class="label">${ZenI18n.t('emp.basicSalary')}</span><span class="value">${U.money(p.basicSalary)}</span></div>
         <div class="detail-item"><span class="label">${lang === 'ar' ? 'البدلات' : 'Allowances'}</span><span class="value">${U.money(p.allowances)}</span></div>
