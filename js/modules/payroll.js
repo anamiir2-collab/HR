@@ -99,6 +99,8 @@ window.ZenPayroll = (function () {
       next.applyTo = Object.assign({}, next.applyTo, applyTo);
       next.enabled = Object.values(applyTo).some(Boolean);
       next.increment = 5;
+      next.scope = 'individual';
+      next.deductionsPolicy = 'down';
       ZenRounding.saveSettings(next);
       renderRoundingSettings();
       UI.toast(t('تم حفظ إعدادات التقريب','Rounding settings saved'), 'success');
