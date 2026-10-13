@@ -53,6 +53,7 @@
         { page: 'reports', icon: '▥', labelKey: 'reports' },
         { page: 'audit', icon: '⟲', labelKey: 'audit' },
         { page: 'settings', icon: '⚙', labelKey: 'settings' },
+        { page: 'central-settings', icon: '◷', labelKey: 'centralSettings' },
       ]
     }
   ];
@@ -82,6 +83,7 @@
     reports: () => ZenReports.render(),
     audit: () => ZenAudit.render(),
     settings: () => ZenSettings.render(),
+    'central-settings': () => ZenCentralSettings.render(),
   };
 
   function buildNav() {
