@@ -1931,3 +1931,8 @@ button.sp-day { cursor:pointer; }
 #sp-roster-results { margin-top:10px; }
 #sp-roster-results .table-scroll { max-height:360px; overflow:auto; }
 @media (max-width:640px) { .toggle-line { align-items:flex-start; } .shift-planner-card .toolbar { align-items:stretch; } .shift-planner-card .toolbar .field { min-width:0; flex:1 1 100%; } }
+
+.toggle-line input[type="checkbox"] { appearance:none; position:relative; flex:0 0 36px; width:36px; height:20px; min-width:36px; margin:0; border:0; border-radius:999px; background:var(--gray-300); cursor:pointer; transition:background .18s; }
+.toggle-line input[type="checkbox"]::after { content:""; position:absolute; top:2px; inset-inline-start:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .18s; }
+.toggle-line input[type="checkbox"]:checked { background:var(--brand-600); }
+.toggle-line input[type="checkbox"]:checked::after { transform:translateX(16px); }
