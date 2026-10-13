@@ -4,37 +4,54 @@
 window.ZenStore = (function () {
   'use strict';
 
-  const SCHEMA_VERSION = 2;
-  const PREFIX = 'zenhr:';
+  const SCHEMA_VERSION = 3;
+  const PREFIX = 'agrimasters:';
+  const LEGACY_PREFIX = 'zenhr:';
   const SETTINGS_KEY = PREFIX + 'settings';
   const META_KEY = PREFIX + 'meta';
 
-  // Collections registry
+  // Collections registry — extended for AGRIMASTERS HR
   const COLLECTIONS = [
+    // Core HR
     'employees', 'departments', 'shifts', 'attendance', 'leaves',
     'payroll', 'allowances', 'rewards', 'penalties', 'deductions',
     'insurance', 'loans', 'contracts', 'performance', 'vacancies',
-    'candidates'
+    'candidates',
+    // AGRIMASTERS HR v2 new modules
+    'fingerprints',         // raw fingerprint punches (import staging)
+    'fingerprintImports',   // import history / batches
+    'disciplinary',         // disciplinary actions & investigations
+    'offboarding',          // resignations, terminations, exit interviews
+    'documents',            // employee document management (IDs, certs, etc.)
+    'auditLog',             // audit trail entries
+    'notifications',        // persistent notification center
+    'attendanceCorrections',// attendance correction requests
+    // Organization structure
+    'branches', 'sections', 'jobTitles', 'jobGrades',
+    'costCenters', 'workLocations', 'employmentCategories',
+    // Training
+    'trainingCourses', 'trainingEnrollments',
   ];
 
   const DEFAULT_SETTINGS = {
     schemaVersion: SCHEMA_VERSION,
-    companyName: 'شركة زين للتقنية',
-    companyNameEn: 'ZenTech Company',
+    companyName: 'أجريماسترز',
+    companyNameEn: 'AGRIMASTERS',
     currency: 'EGP',
     language: 'ar',
     defaultShift: 'Morning',
     workingDays: [0, 1, 2, 3, 4], // Sun-Thu
-    workStartTime: '09:00',
+    workStartTime: '08:00',
     workEndTime: '17:00',
     graceMinutes: 15,
     breakMinutes: 60,
     overtimeRate: 1.5,
-    monthlyWorkingHours: 192,
+    monthlyWorkingHours: 208,
     leaveAnnualBalance: 21,
     leaveSickBalance: 30,
-    insuranceEmployeeRate: 11,   // demo placeholder
-    insuranceEmployerRate: 18,   // demo placeholder
+    insuranceEmployeeRate: 11,   // configurable placeholder — verify with accountant
+    insuranceEmployerRate: 18,   // configurable placeholder — verify with accountant
+    insuranceSocialCap: 12400,   // configurable placeholder — verify with accountant
     taxBrackets: [
       { upTo: 30000, rate: 0 },
       { upTo: 45000, rate: 0.10 },
@@ -43,10 +60,15 @@ window.ZenStore = (function () {
       { upTo: 400000, rate: 0.225 },
       { upTo: Infinity, rate: 0.25 },
     ],
+    taxPersonalExemption: 9000, // configurable — verify with accountant
     accessPassword: 'admin',
     notificationsEnabled: true,
     demoInitialized: false,
     lastBackup: null,
+    // Audit trail toggle
+    auditEnabled: true,
+    // Fingerprint device adapter (informational only — no real connectivity claimed)
+    fingerprintDevice: { vendor: '', model: '', adapter: 'csv', lastConnected: null },
   };
 
   let settings = null;
@@ -231,6 +253,8 @@ window.ZenStore = (function () {
   }
 
   function init() {
+    // Migrate legacy zenhr: data to agrimasters: prefix (one-time, idempotent)
+    migrateLegacyPrefix();
     loadSettings();
     loadMeta();
     // Migration: if schema version differs, ensure no breakage
@@ -246,11 +270,42 @@ window.ZenStore = (function () {
     }
   }
 
+  function migrateLegacyPrefix() {
+    try {
+      const legacySettings = localStorage.getItem(LEGACY_PREFIX + 'settings');
+      const newSettings = localStorage.getItem(SETTINGS_KEY);
+      if (legacySettings && !newSettings) {
+        // Copy settings
+        localStorage.setItem(SETTINGS_KEY, legacySettings);
+        // Copy meta
+        const legacyMeta = localStorage.getItem(LEGACY_PREFIX + 'meta');
+        if (legacyMeta) localStorage.setItem(META_KEY, legacyMeta);
+        // Copy all known collections (legacy list)
+        const legacyCollections = [
+          'employees', 'departments', 'shifts', 'attendance', 'leaves',
+          'payroll', 'allowances', 'rewards', 'penalties', 'deductions',
+          'insurance', 'loans', 'contracts', 'performance', 'vacancies', 'candidates'
+        ];
+        legacyCollections.forEach((c) => {
+          const raw = localStorage.getItem(LEGACY_PREFIX + 'col:' + c);
+          if (raw) localStorage.setItem(PREFIX + 'col:' + c, raw);
+        });
+        // Migrate language key
+        const legacyLang = localStorage.getItem('zenhr:lang');
+        if (legacyLang) localStorage.setItem('agrimasters:lang', legacyLang);
+        console.info('[AGRIMASTERS HR] Migrated legacy zenhr: data to agrimasters: prefix.');
+      }
+    } catch (e) {
+      console.warn('[AGRIMASTERS HR] Legacy migration skipped:', e);
+    }
+  }
+
   init();
 
   return {
     SCHEMA_VERSION,
     COLLECTIONS,
+    PREFIX,
     settings,
     meta,
     saveSettings,

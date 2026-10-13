@@ -4,7 +4,7 @@
 window.ZenI18n = (function () {
   'use strict';
 
-  let lang = localStorage.getItem('zenhr:lang') || 'ar';
+  let lang = localStorage.getItem('agrimasters:lang') || 'ar';
 
   const dict = {
     // ---- App ----
@@ -40,6 +40,20 @@ window.ZenI18n = (function () {
     'recruitment': { ar: 'التوظيف', en: 'Recruitment' },
     'reports': { ar: 'التقارير', en: 'Reports' },
     'settings': { ar: 'الإعدادات', en: 'Settings' },
+    // AGRIMASTERS HR v2 — new module labels
+    'fingerprint': { ar: 'البصمة واستيراد الحضور', en: 'Fingerprint Import' },
+    'disciplinary': { ar: 'الجزاءات والتأديب', en: 'Disciplinary Actions' },
+    'offboarding': { ar: 'إنهاء الخدمة', en: 'Offboarding' },
+    'documents': { ar: 'المستندات والوثائق', en: 'Documents' },
+    'audit': { ar: 'سجل التدقيق', en: 'Audit Trail' },
+    'training': { ar: 'التدريب', en: 'Training' },
+    'organization': { ar: 'الهيكل التنظيمي', en: 'Organization' },
+    'branches': { ar: 'الفروع', en: 'Branches' },
+    'sections': { ar: 'الأقسام الفرعية', en: 'Sections' },
+    'jobTitles': { ar: 'المسميات الوظيفية', en: 'Job Titles' },
+    'jobGrades': { ar: 'الدرجات الوظيفية', en: 'Job Grades' },
+    'costCenters': { ar: 'مراكز التكلفة', en: 'Cost Centers' },
+    'workLocations': { ar: 'مواقع العمل', en: 'Work Locations' },
 
     // ---- Common ----
     'common.search': { ar: 'بحث', en: 'Search' },
@@ -162,14 +176,14 @@ window.ZenI18n = (function () {
   function setLang(l) {
     if (l !== 'ar' && l !== 'en') return;
     lang = l;
-    localStorage.setItem('zenhr:lang', l);
+    localStorage.setItem('agrimasters:lang', l);
     document.documentElement.lang = l;
     document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
     apply();
     if (window.ZenApp && typeof ZenApp.onLangChange === 'function') {
       ZenApp.onLangChange(l);
     }
-    document.dispatchEvent(new CustomEvent('zenhr:lang-change', { detail: { lang: l } }));
+    document.dispatchEvent(new CustomEvent('agrimasters:lang-change', { detail: { lang: l } }));
   }
 
   function toggle() {

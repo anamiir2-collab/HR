@@ -225,23 +225,32 @@ window.ZenUtils = (function () {
     const lang = (window.ZenI18n && ZenI18n.lang) || 'ar';
     const dir = lang === 'ar' ? 'rtl' : 'ltr';
     const fontFamily = lang === 'ar' ? "'Cairo', 'Tajawal', sans-serif" : "'Inter', sans-serif";
-    w.document.write(`<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"><title>${esc(title || 'ZenHR Report')}</title>
+    const companyName = (window.ZenStore && ZenStore.settings && (lang === 'ar' ? ZenStore.settings.companyName : ZenStore.settings.companyNameEn)) || 'AGRIMASTERS HR';
+    w.document.write(`<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"><title>${esc(title || 'AGRIMASTERS HR Report')}</title>
       <style>
         body { font-family: ${fontFamily}; padding: 24px; color: #1e293b; font-size: 13px; line-height: 1.5; }
-        h1, h2, h3 { color: #0f766e; }
+        h1, h2, h3 { color: #14532d; }
         table { width: 100%; border-collapse: collapse; margin: 12px 0; }
         th, td { padding: 8px 10px; border: 1px solid #e2e8f0; text-align: ${dir === 'rtl' ? 'right' : 'left'}; font-size: 12px; }
-        th { background: #f1f5f9; font-weight: 700; color: #334155; }
-        .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
-        .brand { font-size: 22px; font-weight: 800; color: #0f766e; }
+        th { background: #f0fdf4; font-weight: 700; color: #14532d; }
+        tr:nth-child(even) td { background: #fafbfa; }
+        .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #14532d; padding-bottom: 12px; margin-bottom: 20px; }
+        .brand { font-size: 22px; font-weight: 800; color: #14532d; }
+        .brand-sub { font-size: 11px; color: #475569; font-weight: 500; }
         .meta { color: #64748b; font-size: 11px; text-align: ${dir === 'rtl' ? 'left' : 'right'}; }
         .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 10px; text-align: center; }
         @media print { body { padding: 0; } }
       </style>
       </head><body>
-      <div class="head"><div class="brand">ZenHR</div><div class="meta">${esc(title || 'Report')}<br>${date(new Date())}</div></div>
+      <div class="head">
+        <div>
+          <div class="brand">AGRIMASTERS HR</div>
+          <div class="brand-sub">${esc(companyName)} · ${lang === 'ar' ? 'نظام إدارة الموارد البشرية' : 'Human Resources Management System'}</div>
+        </div>
+        <div class="meta">${esc(title || 'Report')}<br>${date(new Date())}</div>
+      </div>
       ${html}
-      <div class="footer">ZenHR · ${esc((window.ZenStore && ZenStore.settings && ZenStore.settings.companyName) || 'ZenHR')} · ${date(new Date())}</div>
+      <div class="footer">AGRIMASTERS HR · ${esc(companyName)} · ${date(new Date())}</div>
       </body></html>`);
     w.document.close();
     w.focus();

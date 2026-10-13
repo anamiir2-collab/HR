@@ -1,5 +1,6 @@
 /* ============================================================
-   ZenHR — Dashboard Module
+   AGRIMASTERS HR — Dashboard Module
+   Real statistics computed from stored records.
    ============================================================ */
 window.ZenDashboard = (function () {
   'use strict';
@@ -24,36 +25,67 @@ window.ZenDashboard = (function () {
     const contracts = S.getCollection('contracts');
     const vacancies = S.getCollection('vacancies');
     const candidates = S.getCollection('candidates');
+    const documents = S.getCollection('documents');
+    const disciplinary = S.getCollection('disciplinary');
+    const offboarding = S.getCollection('offboarding');
+    const corrections = S.getCollection('attendanceCorrections');
 
     const active = employees.filter((e) => e.employmentStatus === 'active');
     const onLeave = employees.filter((e) => e.employmentStatus === 'on_leave');
     const inactive = employees.filter((e) => e.employmentStatus === 'inactive');
-    const resigned = employees.filter((e) => e.employmentStatus === 'resigned' || e.employmentStatus === 'terminated');
+    const archived = employees.filter((e) => e.employmentStatus === 'resigned' || e.employmentStatus === 'terminated');
 
     const todayAtt = attendance.filter((a) => a.date === today);
     const presentToday = todayAtt.filter((a) => a.status === 'present' || a.status === 'remote').length;
     const lateToday = todayAtt.filter((a) => a.status === 'late').length;
     const absentToday = todayAtt.filter((a) => a.status === 'absent').length;
+    // Missing punches: present/late but no check-out
+    const missingPunches = todayAtt.filter((a) => (a.status === 'present' || a.status === 'late') && !a.checkOut).length;
+    // Active employees without attendance today
+    const empIdsToday = new Set(todayAtt.map((a) => a.employeeId));
+    const onLeaveIds = new Set(onLeave.map((e) => e.id));
+    const missingToday = active.filter((e) => !empIdsToday.has(e.id) && !onLeaveIds.has(e.id)).length;
+    // Overtime hours today
+    const overtimeTodayMin = todayAtt.reduce((s, a) => s + (a.overtimeMinutes || 0), 0);
+    const overtimeTodayHrs = (overtimeTodayMin / 60).toFixed(1);
 
     const pendingLeaves = leaves.filter((l) => l.status === 'pending');
-    const upcomingContracts = contracts.filter((c) => {
-      if (c.status !== 'active') return false;
-      const days = (new Date(c.endDate) - todayDate) / 86400000;
+    const pendingCorrections = corrections.filter((cc) => cc.status === 'pending');
+    const upcomingContracts = contracts.filter((cc) => {
+      if (cc.status !== 'active' || !cc.endDate) return false;
+      const days = (new Date(cc.endDate) - todayDate) / 86400000;
       return days >= 0 && days <= 60;
     });
 
+    // Upcoming document expirations (next 30 days)
+    const upcomingDocs = documents.filter((d) => {
+      if (!d.expiryDate) return false;
+      const days = (new Date(d.expiryDate) - todayDate) / 86400000;
+      return days >= 0 && days <= 30;
+    });
+
+    // Open disciplinary cases
+    const openDisciplinary = disciplinary.filter((d) => d.status === 'open' || d.status === 'under_investigation' || d.status === 'pending_decision').length;
+
+    // Offboarding in progress
+    const offboardingInProgress = offboarding.filter((o) => o.status === 'pending' || o.status === 'approved' || o.status === 'in_progress').length;
+
     const monthPayroll = payroll.filter((p) => p.period === cm);
-    const totalPayroll = monthPayroll.reduce((s, p) => s + p.netSalary, 0);
-    const totalAllowances = monthPayroll.reduce((s, p) => s + p.allowances, 0);
-    const totalRewards = monthPayroll.reduce((s, p) => s + p.rewards, 0);
-    const totalDeductions = monthPayroll.reduce((s, p) => s + p.totalDeductions, 0);
+    const totalPayroll = monthPayroll.reduce((s, p) => s + (p.netSalary || 0), 0);
+    const totalAllowances = monthPayroll.reduce((s, p) => s + (p.allowances || 0), 0);
+    const totalRewards = monthPayroll.reduce((s, p) => s + (p.rewards || 0), 0);
+    const totalDeductions = monthPayroll.reduce((s, p) => s + (p.totalDeductions || 0), 0);
+    const payrollStatus = monthPayroll.length === 0 ? (lang === 'ar' ? 'لم يُعالج' : 'Not processed') :
+      monthPayroll.some((p) => p.status === 'draft') ? (lang === 'ar' ? 'مسودة' : 'Draft') :
+      monthPayroll.some((p) => p.status === 'approved' || p.status === 'paid') ? (lang === 'ar' ? 'معتمد' : 'Approved') :
+      (lang === 'ar' ? 'تمت المعالجة' : 'Processed');
 
     const openVacancies = vacancies.filter((v) => v.status === 'open');
 
     // Welcome header
     const hour = todayDate.getHours();
     const greeting = hour < 12 ? (lang === 'ar' ? 'صباح الخير' : 'Good morning') : (hour < 18 ? (lang === 'ar' ? 'مساء الخير' : 'Good afternoon') : (lang === 'ar' ? 'مساء الخير' : 'Good evening'));
-    const userName = (window.ZenAuth && ZenAuth.currentUser() && ZenAuth.currentUser().name) || (lang === 'ar' ? 'مدير النظام' : 'Admin');
+    const userName = (window.ZenAuth && ZenAuth.currentUser() && ZenAuth.currentUser().name) || (lang === 'ar' ? 'مدير الموارد البشرية' : 'HR Manager');
     document.getElementById('welcome-title').textContent = greeting + '، ' + userName;
     document.getElementById('welcome-subtitle').textContent = lang === 'ar' ? 'إليك ملخصًا سريعًا لكل ما يحدث في فريقك اليوم.' : 'Here is a quick summary of what is happening with your team today.';
     document.getElementById('today-date').textContent = U.date(todayDate, { weekday: 'long' }) + ' · ' + U.monthName(todayDate.getMonth(), lang) + ' ' + todayDate.getFullYear();
@@ -61,10 +93,10 @@ window.ZenDashboard = (function () {
     const wa = document.getElementById('welcome-actions');
     if (wa) {
       wa.innerHTML = `
-        <button class="btn secondary" data-action="export-data"><span>⇩</span> <span data-i18n="common.export">${ZenI18n.t('common.export')}</span></button>
+        <button class="btn secondary" data-nav="fingerprint"><span>⇩</span> <span>${lang === 'ar' ? 'استيراد البصمات' : 'Import Punches'}</span></button>
         <button class="btn primary" data-nav="employees"><span>＋</span> <span>${lang === 'ar' ? 'إدارة الموظفين' : 'Manage Employees'}</span></button>
       `;
-      wa.querySelector('[data-action="export-data"]').onclick = () => ZenRouter.go('reports');
+      wa.querySelector('[data-nav="fingerprint"]').onclick = () => ZenRouter.go('fingerprint');
       wa.querySelector('[data-nav="employees"]').onclick = () => ZenRouter.go('employees');
     }
 
@@ -75,7 +107,7 @@ window.ZenDashboard = (function () {
     const depData = S.getCollection('departments').map((d) => ({
       label: lang === 'ar' ? d.name : d.nameEn,
       value: depCounts[d.id] || 0,
-      color: ['#0f766e', '#1d4ed8', '#15803d', '#b45309', '#7e22ce', '#be185d', '#c2410c', '#4338ca', '#0e7490', '#334155', '#92400e', '#581c87', '#0c4a6e'][Math.abs(d.id.hashCode ? d.id.hashCode() : d.id.length) % 13]
+      color: ['#15803d', '#166534', '#14532d', '#16a34a', '#22c55e', '#b45309', '#7e22ce', '#be185d', '#c2410c', '#4338ca', '#0e7490', '#334155', '#92400e', '#581c87', '#0c4a6e'][Math.abs(d.id.length) % 15]
     })).filter((d) => d.value > 0);
 
     // Attendance trend (last 7 days)
@@ -93,7 +125,7 @@ window.ZenDashboard = (function () {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(todayDate.getFullYear(), todayDate.getMonth() - i, 1);
       const ym = d.toISOString().slice(0, 7);
-      const total = payroll.filter((p) => p.period === ym).reduce((s, p) => s + p.netSalary, 0);
+      const total = payroll.filter((p) => p.period === ym).reduce((s, p) => s + (p.netSalary || 0), 0);
       payTrend.push({ label: U.monthName(d.getMonth(), lang).substring(0, 3), value: Math.round(total / 1000) });
     }
 
@@ -102,7 +134,7 @@ window.ZenDashboard = (function () {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(todayDate.getFullYear(), todayDate.getMonth() - i, 1);
       const ym = d.toISOString().slice(0, 7);
-      const count = employees.filter((e) => e.hireDate.startsWith(ym)).length;
+      const count = employees.filter((e) => e.hireDate && e.hireDate.startsWith(ym)).length;
       hiringTrend.push({ label: U.monthName(d.getMonth(), lang).substring(0, 3), value: count });
     }
 
@@ -111,7 +143,7 @@ window.ZenDashboard = (function () {
       { label: ZenI18n.t('status.active'), value: active.length, color: '#22c55e' },
       { label: ZenI18n.t('status.on_leave'), value: onLeave.length, color: '#3b82f6' },
       { label: ZenI18n.t('status.inactive'), value: inactive.length, color: '#94a3b8' },
-      { label: ZenI18n.t('status.resigned'), value: resigned.length, color: '#ef4444' },
+      { label: ZenI18n.t('status.resigned'), value: archived.length, color: '#ef4444' },
     ];
 
     // Leave distribution
@@ -121,30 +153,53 @@ window.ZenDashboard = (function () {
     const leaveData = Object.entries(leaveByType).map(([k, v]) => ({
       label: ZenI18n.t('leave.' + k),
       value: v,
-      color: { annual: '#0f766e', sick: '#ef4444', emergency: '#f59e0b', unpaid: '#94a3b8', other: '#3b82f6' }[k]
+      color: { annual: '#15803d', sick: '#ef4444', emergency: '#f59e0b', unpaid: '#94a3b8', other: '#3b82f6' }[k]
     }));
 
     c.innerHTML = `
-      <!-- KPI Cards -->
+      <!-- KPI Cards — Row 1: Workforce -->
       <div class="stat-grid">
-        ${statCard('emp', 'brand', ZenI18n.t('employees'), U.num(employees.length), `${active.length} ${lang === 'ar' ? 'نشط' : 'active'}`, '+2.4%')}
-        ${statCard('emp', 'success', lang === 'ar' ? 'حضور اليوم' : 'Present Today', U.num(presentToday), `${lateToday} ${lang === 'ar' ? 'متأخر' : 'late'}`, 'live')}
-        ${statCard('!', 'danger', lang === 'ar' ? 'غياب اليوم' : 'Absent Today', U.num(absentToday), `${todayAtt.length} ${lang === 'ar' ? 'إجمالي السجلات' : 'records'}`, '')}
-        ${statCard('▢', 'warning', lang === 'ar' ? 'إجازات قيد المراجعة' : 'Pending Leaves', U.num(pendingLeaves.length), `${leaves.length} ${lang === 'ar' ? 'إجمالي الطلبات' : 'total requests'}`, '')}
+        ${statCard('♙', 'brand', ZenI18n.t('employees'), U.num(employees.length), `${active.length} ${lang === 'ar' ? 'نشط' : 'active'} · ${archived.length} ${lang === 'ar' ? 'منتهي' : 'archived'}`, '')}
+        ${statCard('✓', 'success', lang === 'ar' ? 'حاضر اليوم' : 'Present Today', U.num(presentToday), `${lateToday} ${lang === 'ar' ? 'متأخر' : 'late'} · ${absentToday} ${lang === 'ar' ? 'غائب' : 'absent'}`, '')}
+        ${statCard('?', 'warning', lang === 'ar' ? 'لم يسجل حضورًا' : 'Missing Attendance', U.num(missingToday), lang === 'ar' ? 'موظف نشط بدون سجل' : 'active employees without record', '')}
+        ${statCard('!', 'danger', lang === 'ar' ? 'بصمة خروج مفقودة' : 'Missing Check-Out', U.num(missingPunches), lang === 'ar' ? 'سجل اليوم' : "today's records", '')}
       </div>
 
+      <!-- KPI Cards — Row 2: Leaves & Corrections -->
       <div class="stat-grid">
-        ${statCard('ج.م', 'info', lang === 'ar' ? 'مرتبات الشهر' : 'Month Payroll', U.money(totalPayroll), `${monthPayroll.length} ${lang === 'ar' ? 'موظف' : 'employees'}`, '')}
+        ${statCard('▣', 'warning', lang === 'ar' ? 'إجازات قيد المراجعة' : 'Pending Leaves', U.num(pendingLeaves.length), `${leaves.length} ${lang === 'ar' ? 'إجمالي الطلبات' : 'total requests'}`, '')}
+        ${statCard('⌥', 'info', lang === 'ar' ? 'تصحيحات حضور معلقة' : 'Pending Corrections', U.num(pendingCorrections.length), lang === 'ar' ? 'بانتظار المراجعة' : 'awaiting review', '')}
+        ${statCard('▣', 'info', lang === 'ar' ? 'في إجازة' : 'On Leave', U.num(onLeave.length), '', '')}
+        ${statCard('◷', 'success', lang === 'ar' ? 'ساعات إضافية اليوم' : "Today's Overtime", overtimeTodayHrs, lang === 'ar' ? 'ساعة' : 'hours', '')}
+      </div>
+
+      <!-- KPI Cards — Row 3: Payroll -->
+      <div class="stat-grid">
+        ${statCard('ج.م', 'brand', lang === 'ar' ? 'مرتبات الشهر' : 'Month Payroll', U.money(totalPayroll), `${monthPayroll.length} ${lang === 'ar' ? 'موظف' : 'employees'} · ${payrollStatus}`, '')}
         ${statCard('↗', 'success', lang === 'ar' ? 'البدلات' : 'Allowances', U.money(totalAllowances), '', '')}
         ${statCard('＋', 'info', lang === 'ar' ? 'المكافآت' : 'Rewards', U.money(totalRewards), '', '')}
         ${statCard('−', 'danger', lang === 'ar' ? 'الخصومات' : 'Deductions', U.money(totalDeductions), '', '')}
       </div>
 
+      <!-- KPI Cards — Row 4: Compliance -->
       <div class="stat-grid">
-        ${statCard('◷', 'info', lang === 'ar' ? 'عقود تنتهي قريباً' : 'Contracts Expiring', U.num(upcomingContracts.length), lang === 'ar' ? 'خلال 60 يوم' : 'next 60 days', '')}
-        ${statCard('♙', 'brand', lang === 'ar' ? 'وظائف شاغرة' : 'Open Vacancies', U.num(openVacancies.length), `${candidates.length} ${lang === 'ar' ? 'مرشح' : 'candidates'}`, '')}
-        ${statCard('⊥', 'gray', lang === 'ar' ? 'منتهية الخدمة' : 'Resigned/Terminated', U.num(resigned.length), '', '')}
-        ${statCard('▣', 'warning', lang === 'ar' ? 'في إجازة' : 'On Leave', U.num(onLeave.length), '', '')}
+        ${statCard('▤', 'warning', lang === 'ar' ? 'عقود تنتهي قريبًا' : 'Contracts Expiring', U.num(upcomingContracts.length), lang === 'ar' ? 'خلال 60 يوم' : 'next 60 days', '')}
+        ${statCard('▤', 'danger', lang === 'ar' ? 'مستندات تنتهي' : 'Documents Expiring', U.num(upcomingDocs.length), lang === 'ar' ? 'خلال 30 يوم' : 'next 30 days', '')}
+        ${statCard('!', 'danger', lang === 'ar' ? 'واقعات تأديبية مفتوحة' : 'Open Disciplinary', U.num(openDisciplinary), '', '')}
+        ${statCard('⏻', 'warning', lang === 'ar' ? 'حالات إنهاء قيد المعالجة' : 'Offboarding In Progress', U.num(offboardingInProgress), '', '')}
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mb-16">
+        <div class="card-head"><div><h3>${lang === 'ar' ? 'إجراءات سريعة' : 'Quick Actions'}</h3></div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+          ${quickAction('employees', '＋', lang === 'ar' ? 'تسجيل موظف' : 'Register Employee')}
+          ${quickAction('attendance', '◷', lang === 'ar' ? 'تسجيل حضور' : 'Record Attendance')}
+          ${quickAction('fingerprint', '⇩', lang === 'ar' ? 'استيراد بصمات' : 'Import Punches')}
+          ${quickAction('leaves', '▣', lang === 'ar' ? 'اعتماد إجازة' : 'Approve Leave')}
+          ${quickAction('payroll', 'ج.م', lang === 'ar' ? 'معالجة المرتبات' : 'Process Payroll')}
+          ${quickAction('reports', '▥', lang === 'ar' ? 'تصدير التقارير' : 'Export Reports')}
+        </div>
       </div>
 
       <!-- Charts -->
@@ -214,10 +269,10 @@ window.ZenDashboard = (function () {
           </div>
           ${upcomingContracts.length === 0 ? UI.empty('∅', ZenI18n.t('common.empty'), '') : `<div class="table-scroll"><table class="data">
             <thead><tr><th>${ZenI18n.t('common.employee')}</th><th>${lang === 'ar' ? 'نهاية العقد' : 'End Date'}</th><th>${lang === 'ar' ? 'الأيام المتبقية' : 'Days left'}</th></tr></thead>
-            <tbody>${upcomingContracts.slice(0, 5).map((c) => {
-              const emp = S.getById('employees', c.employeeId);
-              const days = Math.round((new Date(c.endDate) - todayDate) / 86400000);
-              return `<tr style="cursor:pointer" data-contract="${c.id}"><td>${emp ? UI.avatarCell(emp.name, emp.id) : U.esc(c.employeeId)}</td><td>${U.date(c.endDate)}</td><td>${days > 0 ? days : 0}</td></tr>`;
+            <tbody>${upcomingContracts.slice(0, 5).map((cc) => {
+              const emp = S.getById('employees', cc.employeeId);
+              const days = Math.round((new Date(cc.endDate) - todayDate) / 86400000);
+              return `<tr style="cursor:pointer" data-contract="${cc.id}"><td>${emp ? UI.avatarCell(emp.name, emp.id) : U.esc(cc.employeeId)}</td><td>${U.date(cc.endDate)}</td><td>${days > 0 ? days : 0}</td></tr>`;
             }).join('')}</tbody>
           </table></div>`}
         </div>
@@ -244,6 +299,13 @@ window.ZenDashboard = (function () {
       <div class="stat-value">${U.esc(value)}</div>
       <div class="stat-foot"><span class="${trendCls}">${U.esc(trend || '')}</span><small>${U.esc(sub || '')}</small></div>
     </div>`;
+  }
+
+  function quickAction(page, icon, label) {
+    return `<button class="btn secondary" data-nav="${page}" style="display:flex;flex-direction:column;gap:6px;padding:14px 10px;height:auto">
+      <span style="font-size:24px">${icon}</span>
+      <span style="font-size:12px;font-weight:600">${U.esc(label)}</span>
+    </button>`;
   }
 
   return { render };

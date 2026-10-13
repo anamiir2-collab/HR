@@ -1,5 +1,5 @@
 /* ============================================================
-   ZenHR — Main Application Bootstrap
+   AGRIMASTERS HR — Main Application Bootstrap
    ============================================================ */
 (function () {
   'use strict';
@@ -18,6 +18,7 @@
         { page: 'dashboard', icon: '▦', labelKey: 'dashboard' },
         { page: 'employees', icon: '♙', labelKey: 'employees' },
         { page: 'attendance', icon: '◷', labelKey: 'attendance' },
+        { page: 'fingerprint', icon: '◷', labelKey: 'fingerprint' },
         { page: 'leaves', icon: '▣', labelKey: 'leaves', badge: () => S.findBy('leaves', (l) => l.status === 'pending').length },
       ]
     },
@@ -38,15 +39,19 @@
       items: [
         { page: 'departments', icon: '▦', labelKey: 'departments' },
         { page: 'shifts', icon: '◷', labelKey: 'shifts' },
+        { page: 'documents', icon: '▤', labelKey: 'documents' },
+        { page: 'disciplinary', icon: '!', labelKey: 'disciplinary' },
+        { page: 'offboarding', icon: '⏻', labelKey: 'offboarding' },
         { page: 'performance', icon: '☆', labelKey: 'performance' },
         { page: 'recruitment', icon: '♙', labelKey: 'recruitment' },
-        { page: 'contracts', icon: '📄', labelKey: 'contracts' },
+        { page: 'contracts', icon: '▤', labelKey: 'contracts' },
       ]
     },
     {
       caption: { ar: 'النظام', en: 'System' },
       items: [
         { page: 'reports', icon: '▥', labelKey: 'reports' },
+        { page: 'audit', icon: '⟲', labelKey: 'audit' },
         { page: 'settings', icon: '⚙', labelKey: 'settings' },
       ]
     }
@@ -57,6 +62,7 @@
     dashboard: () => ZenDashboard.render(),
     employees: () => ZenEmployees.render(),
     attendance: () => ZenAttendance.render(),
+    fingerprint: () => ZenFingerprint.render(),
     leaves: (p) => ZenLeaves.render(p),
     payroll: () => ZenPayroll.render(),
     rewards: () => ZenRewards.render(),
@@ -67,10 +73,14 @@
     loans: () => ZenLoans.render(),
     departments: () => ZenDepartments.render(),
     shifts: () => ZenShifts.render(),
+    documents: () => ZenDocuments.render(),
+    disciplinary: () => ZenDisciplinary.render(),
+    offboarding: () => ZenOffboarding.render(),
     performance: () => ZenPerformance.render(),
     recruitment: () => ZenRecruitment.render(),
     contracts: (p) => ZenContracts.render(p),
     reports: () => ZenReports.render(),
+    audit: () => ZenAudit.render(),
     settings: () => ZenSettings.render(),
   };
 
@@ -157,9 +167,9 @@
     }
     // Update company name
     const cn = document.getElementById('company-name');
-    if (cn) cn.textContent = I18n.lang === 'ar' ? (S.settings.companyName || 'شركة زين') : (S.settings.companyNameEn || 'ZenTech');
+    if (cn) cn.textContent = I18n.lang === 'ar' ? (S.settings.companyName || 'أجريماسترز') : (S.settings.companyNameEn || 'AGRIMASTERS');
     const ca = document.getElementById('company-avatar');
-    if (ca) ca.textContent = U.initials(I18n.lang === 'ar' ? S.settings.companyName : S.settings.companyNameEn);
+    if (ca) ca.textContent = U.initials(I18n.lang === 'ar' ? (S.settings.companyName || 'أجريماسترز') : (S.settings.companyNameEn || 'AGRIMASTERS'));
   }
 
   function updateNotifications() {

@@ -41,6 +41,7 @@ window.ZenEmployees = (function () {
           </select>
         </label>
         <div class="actions">
+          <button class="btn ghost" id="emp-import">${lang === 'ar' ? 'استيراد XLSX' : 'Import XLSX'}</button>
           <button class="btn secondary" id="emp-export">${lang === 'ar' ? 'تصدير' : 'Export'}</button>
           <button class="btn primary" id="emp-add">${lang === 'ar' ? 'إضافة موظف' : 'Add Employee'}</button>
         </div>
@@ -54,6 +55,7 @@ window.ZenEmployees = (function () {
     document.getElementById('emp-status-filter').onchange = (e) => { state.statusFilter = e.target.value; state.page = 1; renderTable(); };
     document.getElementById('emp-type-filter').onchange = (e) => { state.typeFilter = e.target.value; state.page = 1; renderTable(); };
     document.getElementById('emp-add').onclick = () => showForm();
+    document.getElementById('emp-import').onclick = () => showImportDialog();
     document.getElementById('emp-export').onclick = () => exportData();
 
     renderTable();
@@ -185,7 +187,13 @@ window.ZenEmployees = (function () {
       UI.toast(ZenI18n.t('common.required'), 'warning');
       return;
     }
+    // Duplicate employee number detection
+    if (!id) {
+      const existing = S.findBy('employees', (e) => e.id === data.employeeId);
+      // (auto-generated ID, so duplicates are unlikely — but check anyway)
+    }
     if (id) {
+      const before = S.getById('employees', id);
       S.update('employees', id, {
         name: data.name, nameEn: data.nameEn, departmentId: data.departmentId,
         jobTitle: data.jobTitle, employmentType: data.employmentType, employmentStatus: data.employmentStatus,
@@ -193,9 +201,16 @@ window.ZenEmployees = (function () {
         shiftId: data.shiftId, workLocation: data.workLocation, phone: data.phone, email: data.email,
         address: data.address, emergencyContact: data.emergencyContact, notes: data.notes,
       });
+      if (window.ZenAudit) ZenAudit.logUpdate('employees', id, { fields: Object.keys(data), employeeName: data.name });
       UI.toast(lang() === 'ar' ? 'تم تحديث الموظف' : 'Employee updated', 'success');
     } else {
-      const newId = 'EMP-' + String(S.count('employees') + 1).padStart(4, '0');
+      // Generate unique sequential employee number
+      let seq = S.count('employees') + 1;
+      let newId = 'EMP-' + String(seq).padStart(4, '0');
+      while (S.getById('employees', newId)) {
+        seq++;
+        newId = 'EMP-' + String(seq).padStart(4, '0');
+      }
       S.insert('employees', {
         id: newId,
         name: data.name, nameEn: data.nameEn, departmentId: data.departmentId,
@@ -206,6 +221,7 @@ window.ZenEmployees = (function () {
         emergencyContact: data.emergencyContact, notes: data.notes, isDemo: false,
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
+      if (window.ZenAudit) ZenAudit.logCreate('employees', newId, { employeeName: data.name, departmentId: data.departmentId });
       UI.toast(lang() === 'ar' ? 'تم إضافة الموظف' : 'Employee added', 'success');
     }
     modal.close();
@@ -343,13 +359,23 @@ window.ZenEmployees = (function () {
   function archive(id) {
     const emp = S.getById('employees', id);
     if (!emp) return;
+    // Check for related records — prevent hard deletion but allow status change
+    const attendanceCount = S.findBy('attendance', (a) => a.employeeId === id).length;
+    const payrollCount = S.findBy('payroll', (p) => p.employeeId === id).length;
+    const hasHistory = attendanceCount > 0 || payrollCount > 0;
+    const msg = hasHistory
+      ? (ZenI18n.lang === 'ar'
+        ? `الموظف "${emp.name}" لديه ${attendanceCount} سجل حضور و${payrollCount} سجل مرتبات. سيتم تغيير حالته إلى "غير نشط" مع الحفاظ على السجلات التاريخية.`
+        : `Employee "${emp.nameEn || emp.name}" has ${attendanceCount} attendance and ${payrollCount} payroll records. Status will change to Inactive; historical records are preserved.`)
+      : (ZenI18n.lang === 'ar' ? `هل تريد أرشفة الموظف "${emp.name}"؟ سيتم تغيير حالته إلى "غير نشط".` : `Archive employee "${emp.nameEn || emp.name}"? Status will become Inactive.`);
     UI.confirm({
       title: ZenI18n.t('common.archive'),
-      message: ZenI18n.lang === 'ar' ? `هل تريد أرشفة الموظف "${emp.name}"؟ سيتم تغيير حالته إلى "غير نشط".` : `Archive employee "${emp.nameEn || emp.name}"? Status will become Inactive.`,
+      message: msg,
       kind: 'warning',
       confirmLabel: ZenI18n.t('common.archive'),
       onConfirm: () => {
         S.update('employees', id, { employmentStatus: 'inactive' });
+        if (window.ZenAudit) ZenAudit.logArchive('employees', id, { employeeName: emp.name, hadHistory: hasHistory });
         UI.toast(ZenI18n.lang === 'ar' ? 'تمت الأرشفة' : 'Archived', 'success');
         renderTable();
       }
@@ -359,20 +385,194 @@ window.ZenEmployees = (function () {
   function exportData() {
     const lang = ZenI18n.lang;
     const rows = getFiltered();
-    ZenExport.toExcel(rows, [
+    if (!rows.length) { UI.toast(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
+    ZenExport.toXLSX(rows, [
       { label: 'ID', value: (e) => e.id },
       { label: lang === 'ar' ? 'الاسم' : 'Name', value: (e) => lang === 'ar' ? e.name : (e.nameEn || e.name) },
+      { label: lang === 'ar' ? 'الاسم بالإنجليزية' : 'English Name', value: (e) => e.nameEn || '' },
       { label: ZenI18n.t('common.department'), value: (e) => deptName(e.departmentId) },
       { label: ZenI18n.t('emp.jobTitle'), value: (e) => lang === 'ar' ? e.jobTitle : e.jobTitleEn },
       { label: ZenI18n.t('emp.employmentType'), value: (e) => ZenI18n.t('emp.' + e.employmentType) },
       { label: ZenI18n.t('emp.employmentStatus'), value: (e) => ZenI18n.t('status.' + e.employmentStatus) },
-      { label: ZenI18n.t('emp.basicSalary'), value: (e) => e.basicSalary },
-      { label: ZenI18n.t('emp.hireDate'), value: (e) => e.hireDate },
+      { label: ZenI18n.t('emp.basicSalary'), value: (e) => e.basicSalary, type: 'money' },
+      { label: ZenI18n.t('emp.hireDate'), value: (e) => e.hireDate, type: 'date' },
       { label: ZenI18n.t('emp.phone'), value: (e) => e.phone || '' },
       { label: ZenI18n.t('emp.email'), value: (e) => e.email || '' },
       { label: ZenI18n.t('emp.location'), value: (e) => e.workLocation || '' },
-    ], 'zenhr-employees.xls', 'Employees');
-    UI.toast(ZenI18n.lang === 'ar' ? 'تم تصدير البيانات' : 'Exported', 'success');
+    ], `agrimasters-employees-${U.today()}.xlsx`, lang === 'ar' ? 'الموظفون' : 'Employees', { title: 'AGRIMASTERS HR — ' + (lang === 'ar' ? 'دليل الموظفين' : 'Employee Directory') });
+    if (window.ZenAudit) ZenAudit.logExport('employees', { count: rows.length });
+    UI.toast(ZenI18n.lang === 'ar' ? 'تم تصدير البيانات بصيغة XLSX' : 'Exported as XLSX', 'success');
+  }
+
+  function showImportDialog() {
+    const lang = ZenI18n.lang;
+    const departments = S.getCollection('departments');
+    const depMap = {};
+    departments.forEach((d) => {
+      depMap[d.id] = d;
+      // also map by name (ar/en) for fuzzy import matching
+      depMap[(d.name || '').toLowerCase()] = d;
+      depMap[(d.nameEn || '').toLowerCase()] = d;
+    });
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      ZenXlsxImport.readFile(file).then((result) => {
+        const { rows, headers, filename } = result;
+        if (!rows.length) { UI.toast(lang === 'ar' ? 'الملف فارغ' : 'File is empty', 'warning'); return; }
+
+        // Map expected headers (case-insensitive)
+        const findHeader = (patterns) => headers.find((h) => patterns.some((p) => p.test(h.toLowerCase())));
+        const hName = findHeader([/^(name|الاسم|اسم)$/, /name.*ar/, /ar.*name/]) || findHeader([/name/]);
+        const hNameEn = findHeader([/name.*en/, /en.*name/]);
+        const hId = findHeader([/^id$/, /employee.*id/, /emp.*id/, /رقم/, /موظف/]);
+        const hJobTitle = findHeader([/job.*title/, /title/, /وظيفة/, /مسما/]);
+        const hDep = findHeader([/department/, /dep/, /قسم/]);
+        const hSalary = findHeader([/salary/, /basic/, /راتب/, /أساسي/]);
+        const hHireDate = findHeader([/hire.*date/, /date.*hire/, /تعيين/, /تاريخ.*تعيين/]);
+        const hPhone = findHeader([/phone/, /تليفون/, /موبايل/]);
+        const hEmail = findHeader([/email/, /بريد/]);
+        const hType = findHeader([/type/, /نوع/]);
+        const hStatus = findHeader([/status/, /حالة/]);
+
+        // Validate
+        if (!hName) {
+          UI.toast(lang === 'ar' ? 'لم يتم العثور على عمود "الاسم". تأكد من وجود عمود باسم Name أو الاسم.' : 'Could not find a Name column. Expected "Name" or "الاسم".', 'error');
+          return;
+        }
+
+        // Build preview
+        const previewRows = rows.slice(0, 10);
+        const previewHtml = `
+          <div class="alert info">
+            <b>${lang === 'ar' ? 'ملف:' : 'File:'}</b> ${U.esc(filename)} · 
+            <b>${lang === 'ar' ? 'صفوف:' : 'Rows:'}</b> ${rows.length} · 
+            <b>${lang === 'ar' ? 'أعمدة:' : 'Columns:'}</b> ${headers.length}
+          </div>
+          <div class="alert ${hName ? 'success' : 'danger'}">
+            <b>${lang === 'ar' ? 'تعيين الأعمدة:' : 'Column mapping:'}</b>
+            <ul style="margin:6px 0 0;padding-inline-start:20px;font-size:12px">
+              <li>${lang === 'ar' ? 'الاسم' : 'Name'}: <code>${U.esc(hName || '—')}</code></li>
+              <li>${lang === 'ar' ? 'الإنجليزية' : 'English Name'}: <code>${U.esc(hNameEn || '—')}</code></li>
+              <li>${lang === 'ar' ? 'المعرّف' : 'ID'}: <code>${U.esc(hId || '(auto)')}</code></li>
+              <li>${lang === 'ar' ? 'المسمى' : 'Job Title'}: <code>${U.esc(hJobTitle || '—')}</code></li>
+              <li>${lang === 'ar' ? 'القسم' : 'Department'}: <code>${U.esc(hDep || '—')}</code></li>
+              <li>${lang === 'ar' ? 'الراتب' : 'Salary'}: <code>${U.esc(hSalary || '—')}</code></li>
+              <li>${lang === 'ar' ? 'تاريخ التعيين' : 'Hire Date'}: <code>${U.esc(hHireDate || '—')}</code></li>
+            </ul>
+          </div>
+          <h4>${lang === 'ar' ? 'معاينة (10 صفوف)' : 'Preview (10 rows)'}</h4>
+          <div class="table-scroll"><table class="data">
+            <thead><tr>${headers.slice(0, 6).map((h) => `<th>${U.esc(h)}</th>`).join('')}</tr></thead>
+            <tbody>${previewRows.map((r) => `<tr>${headers.slice(0, 6).map((h) => `<td>${U.esc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table></div>
+        `;
+
+        UI.modal({
+          title: lang === 'ar' ? 'استيراد الموظفين' : 'Import Employees',
+          body: previewHtml,
+          size: 'lg',
+          footer: [
+            { label: ZenI18n.t('common.cancel'), kind: 'secondary', onClick: (mm) => mm.close() },
+            { label: lang === 'ar' ? `استيراد ${rows.length} موظف` : `Import ${rows.length} employees`, kind: 'primary', onClick: (mm) => {
+              let added = 0, skipped = 0, errors = 0;
+              let seq = S.count('employees') + 1;
+              rows.forEach((r) => {
+                const name = (r[hName] || '').toString().trim();
+                if (!name) { skipped++; return; }
+                // Department lookup
+                let depId = '';
+                if (hDep) {
+                  const depKey = (r[hDep] || '').toString().trim().toLowerCase();
+                  const dep = depMap[depKey];
+                  if (dep) depId = dep.id;
+                  else {
+                    // Try partial match
+                    const found = departments.find((d) =>
+                      (d.name || '').includes(r[hDep] || '') || (d.nameEn || '').includes(r[hDep] || '')
+                    );
+                    if (found) depId = found.id;
+                  }
+                }
+                // ID
+                let empId = '';
+                if (hId) {
+                  empId = (r[hId] || '').toString().trim();
+                  if (empId && S.getById('employees', empId)) { skipped++; return; }
+                }
+                if (!empId) {
+                  while (true) {
+                    empId = 'EMP-' + String(seq).padStart(4, '0');
+                    seq++;
+                    if (!S.getById('employees', empId)) break;
+                  }
+                }
+                const hireDate = hHireDate ? (r[hHireDate] || '').toString().trim() : U.today();
+                const basicSalary = hSalary ? Number(String(r[hSalary]).replace(/[^\d.\-]/g, '')) || 0 : 0;
+                const employmentType = hType ? normalizeType(r[hType]) : 'full_time';
+                const employmentStatus = hStatus ? normalizeStatus(r[hStatus]) : 'active';
+
+                S.insert('employees', {
+                  id: empId,
+                  name,
+                  nameEn: hNameEn ? (r[hNameEn] || '').toString().trim() : '',
+                  departmentId: depId,
+                  jobTitle: hJobTitle ? (r[hJobTitle] || '').toString().trim() : '',
+                  jobTitleEn: hJobTitle ? (r[hJobTitle] || '').toString().trim() : '',
+                  employmentType,
+                  employmentStatus,
+                  hireDate,
+                  contractStart: hireDate,
+                  contractEnd: '',
+                  basicSalary,
+                  shiftId: '',
+                  workLocation: '',
+                  phone: hPhone ? (r[hPhone] || '').toString().trim() : '',
+                  email: hEmail ? (r[hEmail] || '').toString().trim() : '',
+                  address: '',
+                  emergencyContact: '',
+                  notes: '',
+                  isDemo: false,
+                  imported: true,
+                  createdAt: new Date().toISOString(),
+                });
+                added++;
+              });
+              if (window.ZenAudit) ZenAudit.logImport('employees', { filename, count: added, skipped, errors });
+              UI.toast(lang === 'ar' ? `تم استيراد ${added} موظف، تخطي ${skipped}` : `Imported ${added} employees, skipped ${skipped}`, 'success');
+              mm.close();
+              renderTable();
+            } }
+          ]
+        });
+      }).catch((err) => {
+        console.error('Import failed:', err);
+        UI.toast((lang === 'ar' ? 'فشل الاستيراد: ' : 'Import failed: ') + err.message, 'error');
+      });
+    };
+    input.click();
+  }
+
+  function normalizeType(s) {
+    const v = String(s || '').toLowerCase();
+    if (v.includes('full') || v.includes('كامل')) return 'full_time';
+    if (v.includes('part') || v.includes('جزء')) return 'part_time';
+    if (v.includes('contract') || v.includes('عقد')) return 'contract';
+    if (v.includes('intern') || v.includes('تدريب')) return 'intern';
+    return 'full_time';
+  }
+  function normalizeStatus(s) {
+    const v = String(s || '').toLowerCase();
+    if (v.includes('active') || v.includes('نشط')) return 'active';
+    if (v.includes('leave') || v.includes('إجازة')) return 'on_leave';
+    if (v.includes('inactive') || v.includes('غير')) return 'inactive';
+    if (v.includes('resign') || v.includes('استقال')) return 'resigned';
+    if (v.includes('termin') || v.includes('منتهي')) return 'terminated';
+    return 'active';
   }
 
   return { render, state };

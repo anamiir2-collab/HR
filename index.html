@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
-<meta name="description" content="ZenHR — نظام إدارة الموارد البشرية | Human Resources Management System">
-<title>ZenHR | إدارة الموارد البشرية</title>
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="AGRIMASTERS HR — أجريماسترز | نظام إدارة الموارد البشرية | Human Resources Management System">
+<title>AGRIMASTERS HR | أجريماسترز — إدارة الموارد البشرية</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
@@ -16,8 +16,8 @@
 <div id="gate-view" class="gate-view" hidden>
   <div class="gate-card">
     <div class="gate-logo">
-      <div class="gate-mark">Z</div>
-      <h1>ZenHR</h1>
+      <div class="gate-mark">A</div>
+      <h1>AGRIMASTERS HR</h1>
       <p data-i18n="gate.subtitle">نظام إدارة الموارد البشرية</p>
     </div>
     <form id="gate-form" class="gate-form">
@@ -37,17 +37,17 @@
 <div class="app" id="app" hidden>
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">Z</div>
+      <div class="brand-mark" aria-hidden="true">A</div>
       <div class="brand-text">
-        <strong>ZenHR</strong>
+        <strong>AGRIMASTERS HR</strong>
         <small data-i18n="app.tagline">إدارة الموارد البشرية</small>
       </div>
       <button class="icon-btn close-menu" data-action="close-menu" aria-label="إغلاق القائمة">×</button>
     </div>
     <div class="workspace">
-      <div class="workspace-avatar" id="company-avatar">ز</div>
+      <div class="workspace-avatar" id="company-avatar">أ</div>
       <div class="workspace-info">
-        <b id="company-name">شركة زين</b>
+        <b id="company-name">أجريماسترز</b>
         <small data-i18n="app.mainWorkspace">مساحة العمل الرئيسية</small>
       </div>
     </div>
@@ -56,7 +56,7 @@
       <div class="profile">
         <div class="avatar" id="user-avatar">أ</div>
         <div class="profile-info">
-          <b id="user-name">أمير أنور</b>
+          <b id="user-name">مدير الموارد البشرية</b>
           <small data-i18n="role.admin">مدير النظام</small>
         </div>
         <button class="icon-btn" data-action="logout" title="خروج">⏻</button>
@@ -99,8 +99,8 @@
       </div>
       <div id="page-content"></div>
       <footer>
-        <span>© 2026 ZenHR · <span data-i18n="footer.tagline">صُمم بعناية لإدارة فريقك</span></span>
-        <span id="app-version">v1.0.0</span>
+        <span>© 2026 AGRIMASTERS HR · <span data-i18n="footer.tagline">نظام إدارة الموارد البشرية</span></span>
+        <span id="app-version">v2.0.0</span>
       </footer>
     </div>
   </main>
@@ -121,19 +121,24 @@
 <div id="toast-root" aria-live="polite"></div>
 
 <!-- ============== Scripts ============== -->
+<!-- SheetJS for real .xlsx import/export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/router.js"></script>
-<script src="js/demo-data.js"></script>
+<script src="js/services/audit.js"></script>
 <script src="js/services/export.js"></script>
 <script src="js/services/backup.js"></script>
+<script src="js/services/xlsx-import.js"></script>
+<script src="js/demo-data.js"></script>
 <script src="js/modules/dashboard.js"></script>
 <script src="js/modules/employees.js"></script>
 <script src="js/modules/departments.js"></script>
 <script src="js/modules/attendance.js"></script>
+<script src="js/modules/fingerprint.js"></script>
 <script src="js/modules/leaves.js"></script>
 <script src="js/modules/shifts.js"></script>
 <script src="js/modules/finance-factory.js"></script>
@@ -145,9 +150,13 @@
 <script src="js/modules/insurance.js"></script>
 <script src="js/modules/loans.js"></script>
 <script src="js/modules/contracts.js"></script>
+<script src="js/modules/documents.js"></script>
+<script src="js/modules/disciplinary.js"></script>
+<script src="js/modules/offboarding.js"></script>
 <script src="js/modules/performance.js"></script>
 <script src="js/modules/recruitment.js"></script>
 <script src="js/modules/reports.js"></script>
+<script src="js/modules/audit.js"></script>
 <script src="js/modules/settings.js"></script>
 <script src="js/app.js"></script>
 <script>

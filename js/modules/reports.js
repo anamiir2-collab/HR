@@ -1,5 +1,5 @@
 /* ============================================================
-   ZenHR — Reports Module
+   AGRIMASTERS HR — Reports Module
    ============================================================ */
 window.ZenReports = (function () {
   'use strict';
@@ -29,9 +29,14 @@ window.ZenReports = (function () {
       { id: 'penalties', icon: '!', color: 'danger', title: lang === 'ar' ? 'تقرير الجزاءات' : 'Penalty Report', desc: lang === 'ar' ? 'الجزاءات والخصومات' : 'Penalties and deductions' },
       { id: 'insurance', icon: '▤', color: 'info', title: lang === 'ar' ? 'تقرير التأمينات' : 'Insurance Report', desc: lang === 'ar' ? 'تقديرات التأمين والضرائب' : 'Insurance & tax estimates' },
       { id: 'loans', icon: '$', color: 'warning', title: lang === 'ar' ? 'تقرير السلف' : 'Loans Report', desc: lang === 'ar' ? 'السلف والأرصدة' : 'Loans and balances' },
-      { id: 'contracts', icon: '📄', color: 'info', title: lang === 'ar' ? 'تقرير العقود' : 'Contract Report', desc: lang === 'ar' ? 'انتهاء العقود' : 'Contract expirations' },
+      { id: 'contracts', icon: '▤', color: 'info', title: lang === 'ar' ? 'تقرير العقود' : 'Contract Report', desc: lang === 'ar' ? 'انتهاء العقود' : 'Contract expirations' },
+      { id: 'documents', icon: '▤', color: 'warning', title: lang === 'ar' ? 'تقرير المستندات' : 'Documents Report', desc: lang === 'ar' ? 'المستندات المنتهية والمنتهية قريبًا' : 'Expiring and expired documents' },
+      { id: 'disciplinary', icon: '!', color: 'danger', title: lang === 'ar' ? 'تقرير التأديب' : 'Disciplinary Report', desc: lang === 'ar' ? 'الواقعات والقرارات' : 'Incidents and decisions' },
+      { id: 'offboarding', icon: '⏻', color: 'gray', title: lang === 'ar' ? 'تقرير إنهاء الخدمة' : 'Offboarding Report', desc: lang === 'ar' ? 'عمليات إنهاء الخدمة' : 'Employment terminations' },
+      { id: 'fingerprint_imports', icon: '⇩', color: 'info', title: lang === 'ar' ? 'نتائج استيراد البصمات' : 'Fingerprint Import Results', desc: lang === 'ar' ? 'سجل دفعات الاستيراد' : 'Import batch history' },
+      { id: 'audit', icon: '⟲', color: 'gray', title: lang === 'ar' ? 'سجل التدقيق' : 'Audit Log', desc: lang === 'ar' ? 'تاريخ الإجراءات' : 'Action history' },
       { id: 'hiring', icon: '↗', color: 'success', title: lang === 'ar' ? 'تقرير التوظيف' : 'Hiring Report', desc: lang === 'ar' ? 'التوظيف والاستقطاب' : 'Recruitment stats' },
-      { id: 'performance', icon: '☆', color: 'brand', title: lang === 'ar' ? 'تقريم الأداء' : 'Performance Report', desc: lang === 'ar' ? 'نتائج التقييمات' : 'Evaluation results' },
+      { id: 'performance', icon: '☆', color: 'brand', title: lang === 'ar' ? 'تقييم الأداء' : 'Performance Report', desc: lang === 'ar' ? 'نتائج التقييمات' : 'Evaluation results' },
     ];
 
     c.innerHTML = `
@@ -234,6 +239,73 @@ window.ZenReports = (function () {
         { label: lang === 'ar' ? 'التاريخ' : 'Date', render: (p) => U.date(p.evaluationDate) },
       ];
       summary = { label: lang === 'ar' ? 'متوسط النتيجة' : 'Avg Score', value: rows.length ? Math.round(rows.reduce((s, p) => s + p.overallScore, 0) / rows.length) : 0 };
+    } else if (id === 'documents') {
+      title = lang === 'ar' ? 'تقرير المستندات' : 'Documents Report';
+      const docs = S.getCollection('documents');
+      rows = docs.map((d) => {
+        let status = 'valid';
+        if (!d.issueDate && !d.expiryDate) status = 'missing';
+        else if (d.expiryDate && new Date(d.expiryDate) < today) status = 'expired';
+        else if (d.expiryDate) {
+          const days = (new Date(d.expiryDate) - today) / 86400000;
+          if (days >= 0 && days <= 30) status = 'expiring';
+        }
+        return { ...d, _status: status };
+      });
+      columns = [
+        { label: ZenI18n.t('common.employee'), render: (d) => { const e = empMap[d.employeeId]; return e ? U.esc(e.name) : d.employeeId; } },
+        { label: lang === 'ar' ? 'الفئة' : 'Category', render: (d) => U.esc(d.category) },
+        { label: lang === 'ar' ? 'العنوان' : 'Title', render: (d) => U.esc(d.title) },
+        { label: lang === 'ar' ? 'الانتهاء' : 'Expiry', render: (d) => U.date(d.expiryDate) },
+        { label: ZenI18n.t('common.status'), render: (d) => UI.badge(d._status, d._status === 'valid' ? 'success' : (d._status === 'expired' ? 'danger' : (d._status === 'missing' ? 'gray' : 'warning'))) },
+      ];
+      summary = { label: lang === 'ar' ? 'إجمالي المستندات' : 'Total Documents', value: rows.length };
+    } else if (id === 'disciplinary') {
+      title = lang === 'ar' ? 'تقرير التأديب' : 'Disciplinary Report';
+      rows = S.getCollection('disciplinary');
+      columns = [
+        { label: lang === 'ar' ? 'المرجع' : 'Reference', render: (r) => U.esc(r.id) },
+        { label: ZenI18n.t('common.employee'), render: (r) => { const e = empMap[r.employeeId]; return e ? U.esc(e.name) : r.employeeId; } },
+        { label: ZenI18n.t('common.type'), render: (r) => U.esc(r.type) },
+        { label: lang === 'ar' ? 'تاريخ الواقعة' : 'Incident Date', render: (r) => U.date(r.incidentDate) },
+        { label: ZenI18n.t('common.status'), render: (r) => UI.badge(r.status, 'gray') },
+      ];
+      summary = { label: lang === 'ar' ? 'إجمالي الواقعات' : 'Total Incidents', value: rows.length };
+    } else if (id === 'offboarding') {
+      title = lang === 'ar' ? 'تقرير إنهاء الخدمة' : 'Offboarding Report';
+      rows = S.getCollection('offboarding');
+      columns = [
+        { label: lang === 'ar' ? 'المرجع' : 'Reference', render: (r) => U.esc(r.id) },
+        { label: ZenI18n.t('common.employee'), render: (r) => { const e = empMap[r.employeeId]; return e ? U.esc(e.name) : r.employeeId; } },
+        { label: ZenI18n.t('common.type'), render: (r) => U.esc(r.type) },
+        { label: lang === 'ar' ? 'آخر يوم' : 'Last Day', render: (r) => U.date(r.lastWorkingDay) },
+        { label: ZenI18n.t('common.status'), render: (r) => UI.badge(r.status, 'gray') },
+      ];
+      summary = { label: lang === 'ar' ? 'إجمالي الحالات' : 'Total Cases', value: rows.length };
+    } else if (id === 'fingerprint_imports') {
+      title = lang === 'ar' ? 'نتائج استيراد البصمات' : 'Fingerprint Import Results';
+      rows = S.getCollection('fingerprintImports');
+      columns = [
+        { label: lang === 'ar' ? 'التاريخ' : 'Date', render: (r) => U.date(r.importedAt) + ' ' + U.time(r.importedAt) },
+        { label: lang === 'ar' ? 'الملف' : 'File', render: (r) => U.esc(r.filename) },
+        { label: lang === 'ar' ? 'الإجمالي' : 'Total', render: (r) => r.totalRows },
+        { label: lang === 'ar' ? 'معترف بها' : 'Recognized', render: (r) => `<b style="color:var(--success-700)">${r.recognized}</b>` },
+        { label: lang === 'ar' ? 'غير معروفة' : 'Unknown', render: (r) => r.unknown || 0 },
+        { label: lang === 'ar' ? 'مكررة' : 'Duplicates', render: (r) => r.duplicates || 0 },
+        { label: lang === 'ar' ? 'أخطاء' : 'Errors', render: (r) => r.errors || 0 },
+      ];
+      summary = { label: lang === 'ar' ? 'إجمالي الدفعات' : 'Total Batches', value: rows.length };
+    } else if (id === 'audit') {
+      title = lang === 'ar' ? 'سجل التدقيق' : 'Audit Log';
+      rows = S.getCollection('auditLog').sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1)).slice(0, 500);
+      columns = [
+        { label: lang === 'ar' ? 'التاريخ' : 'Timestamp', render: (r) => U.date(r.timestamp) + ' ' + U.time(r.timestamp) },
+        { label: lang === 'ar' ? 'الإجراء' : 'Action', render: (r) => U.esc(r.action) },
+        { label: lang === 'ar' ? 'الكيان' : 'Entity', render: (r) => U.esc(r.entity) },
+        { label: lang === 'ar' ? 'المعرف' : 'ID', render: (r) => U.esc(r.entityId || '—') },
+        { label: lang === 'ar' ? 'المستخدم' : 'User', render: (r) => U.esc(r.userName || r.user) },
+      ];
+      summary = { label: lang === 'ar' ? 'إجمالي السجلات' : 'Total Entries', value: S.getCollection('auditLog').length };
     }
 
     const body = `
@@ -274,36 +346,93 @@ window.ZenReports = (function () {
     const empMap = {};
     S.getCollection('employees').forEach((e) => empMap[e.id] = e);
     const REPORTS = {
-      employees: { collection: 'employees', columns: [
+      employees: { collection: 'employees', filename: 'employees', sheetName: lang === 'ar' ? 'الموظفون' : 'Employees', columns: [
         { label: 'ID', value: (e) => e.id },
-        { label: ZenI18n.t('common.employee'), value: (e) => lang === 'ar' ? e.name : (e.nameEn || e.name) },
+        { label: ZenI18n.t('common.employee'), value: (e) => lang === 'ar' ? e.name : (e.nameEn || e.name), type: 'text' },
         { label: ZenI18n.t('common.department'), value: (e) => deptName(e.departmentId) },
         { label: ZenI18n.t('emp.jobTitle'), value: (e) => e.jobTitle },
-        { label: ZenI18n.t('emp.basicSalary'), value: (e) => e.basicSalary },
-        { label: ZenI18n.t('emp.hireDate'), value: (e) => e.hireDate },
+        { label: ZenI18n.t('emp.basicSalary'), value: (e) => e.basicSalary, type: 'money' },
+        { label: ZenI18n.t('emp.hireDate'), value: (e) => e.hireDate, type: 'date' },
         { label: ZenI18n.t('common.status'), value: (e) => e.employmentStatus },
-      ], filename: 'employees' },
-      attendance: { collection: 'attendance', columns: [
-        { label: ZenI18n.t('common.employee'), value: (a) => { const e = empMap[a.employeeId]; return e ? e.name : a.employeeId; } },
-        { label: ZenI18n.t('common.date'), value: (a) => a.date },
+      ] },
+      attendance: { collection: 'attendance', filename: 'attendance', sheetName: lang === 'ar' ? 'الحضور' : 'Attendance', columns: [
+        { label: 'Employee ID', value: (a) => a.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (a) => { const e = empMap[a.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : a.employeeId; } },
+        { label: ZenI18n.t('common.date'), value: (a) => a.date, type: 'date' },
+        { label: lang === 'ar' ? 'الدخول' : 'Check In', value: (a) => a.checkIn || '' },
+        { label: lang === 'ar' ? 'الخروج' : 'Check Out', value: (a) => a.checkOut || '' },
         { label: ZenI18n.t('common.status'), value: (a) => a.status },
-        { label: lang === 'ar' ? 'ساعات' : 'Hours', value: (a) => a.workMinutes ? (a.workMinutes / 60).toFixed(1) : 0 },
-      ], filename: 'attendance' },
-      leaves: { collection: 'leaves', columns: [
-        { label: ZenI18n.t('common.employee'), value: (l) => { const e = empMap[l.employeeId]; return e ? e.name : l.employeeId; } },
+        { label: lang === 'ar' ? 'ساعات' : 'Hours', value: (a) => a.workedMinutes ? +(a.workedMinutes / 60).toFixed(2) : 0, type: 'number' },
+        { label: lang === 'ar' ? 'إضافي' : 'Overtime (min)', value: (a) => a.overtimeMinutes || 0, type: 'number' },
+      ] },
+      leaves: { collection: 'leaves', filename: 'leaves', sheetName: lang === 'ar' ? 'الإجازات' : 'Leaves', columns: [
+        { label: 'Employee ID', value: (l) => l.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (l) => { const e = empMap[l.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : l.employeeId; } },
         { label: ZenI18n.t('common.type'), value: (l) => l.type },
-        { label: ZenI18n.t('leave.startDate'), value: (l) => l.startDate },
-        { label: ZenI18n.t('leave.endDate'), value: (l) => l.endDate },
-        { label: ZenI18n.t('leave.days'), value: (l) => l.days },
+        { label: ZenI18n.t('leave.startDate'), value: (l) => l.startDate, type: 'date' },
+        { label: ZenI18n.t('leave.endDate'), value: (l) => l.endDate, type: 'date' },
+        { label: ZenI18n.t('leave.days'), value: (l) => l.days, type: 'number' },
         { label: ZenI18n.t('common.status'), value: (l) => l.status },
-      ], filename: 'leaves' },
-      payroll: { collection: 'payroll', columns: [
-        { label: ZenI18n.t('common.employee'), value: (p) => { const e = empMap[p.employeeId]; return e ? e.name : p.employeeId; } },
+        { label: ZenI18n.t('common.reason'), value: (l) => l.reason || '', wrap: true },
+      ] },
+      payroll: { collection: 'payroll', filename: 'payroll', sheetName: lang === 'ar' ? 'المرتبات' : 'Payroll', columns: [
+        { label: 'Employee ID', value: (p) => p.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (p) => { const e = empMap[p.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : p.employeeId; } },
         { label: lang === 'ar' ? 'الشهر' : 'Period', value: (p) => p.period },
-        { label: lang === 'ar' ? 'الأساسي' : 'Basic', value: (p) => p.basicSalary },
-        { label: lang === 'ar' ? 'صافي' : 'Net', value: (p) => p.netSalary },
+        { label: lang === 'ar' ? 'الأساسي' : 'Basic', value: (p) => p.basicSalary, type: 'money' },
+        { label: lang === 'ar' ? 'البدلات' : 'Allowances', value: (p) => p.allowances || 0, type: 'money' },
+        { label: lang === 'ar' ? 'المكافآت' : 'Rewards', value: (p) => p.rewards || 0, type: 'money' },
+        { label: lang === 'ar' ? 'الخصومات' : 'Deductions', value: (p) => p.totalDeductions || 0, type: 'money' },
+        { label: lang === 'ar' ? 'صافي' : 'Net', value: (p) => p.netSalary, type: 'money' },
         { label: ZenI18n.t('common.status'), value: (p) => p.status },
-      ], filename: 'payroll' },
+      ] },
+      documents: { collection: 'documents', filename: 'documents', sheetName: lang === 'ar' ? 'المستندات' : 'Documents', columns: [
+        { label: 'Document ID', value: (d) => d.id },
+        { label: 'Employee ID', value: (d) => d.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (d) => { const e = empMap[d.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : d.employeeId; } },
+        { label: lang === 'ar' ? 'الفئة' : 'Category', value: (d) => d.category },
+        { label: lang === 'ar' ? 'العنوان' : 'Title', value: (d) => d.title || '' },
+        { label: lang === 'ar' ? 'رقم المستند' : 'Number', value: (d) => d.number || '' },
+        { label: lang === 'ar' ? 'الإصدار' : 'Issue Date', value: (d) => d.issueDate || '', type: 'date' },
+        { label: lang === 'ar' ? 'الانتهاء' : 'Expiry Date', value: (d) => d.expiryDate || '', type: 'date' },
+      ] },
+      disciplinary: { collection: 'disciplinary', filename: 'disciplinary', sheetName: lang === 'ar' ? 'التأديب' : 'Disciplinary', columns: [
+        { label: lang === 'ar' ? 'المرجع' : 'Reference', value: (r) => r.id },
+        { label: 'Employee ID', value: (r) => r.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (r) => { const e = empMap[r.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : r.employeeId; } },
+        { label: ZenI18n.t('common.type'), value: (r) => r.type },
+        { label: lang === 'ar' ? 'تاريخ الواقعة' : 'Incident Date', value: (r) => r.incidentDate, type: 'date' },
+        { label: ZenI18n.t('common.status'), value: (r) => r.status },
+        { label: lang === 'ar' ? 'الوصف' : 'Description', value: (r) => r.incidentDescription || '', wrap: true },
+        { label: lang === 'ar' ? 'القرار' : 'Decision', value: (r) => r.decision || '', wrap: true },
+      ] },
+      offboarding: { collection: 'offboarding', filename: 'offboarding', sheetName: lang === 'ar' ? 'إنهاء الخدمة' : 'Offboarding', columns: [
+        { label: lang === 'ar' ? 'المرجع' : 'Reference', value: (r) => r.id },
+        { label: 'Employee ID', value: (r) => r.employeeId },
+        { label: ZenI18n.t('common.employee'), value: (r) => { const e = empMap[r.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : r.employeeId; } },
+        { label: ZenI18n.t('common.type'), value: (r) => r.type },
+        { label: lang === 'ar' ? 'تاريخ الإخطار' : 'Notice Date', value: (r) => r.noticeDate, type: 'date' },
+        { label: lang === 'ar' ? 'آخر يوم' : 'Last Day', value: (r) => r.lastWorkingDay, type: 'date' },
+        { label: ZenI18n.t('common.status'), value: (r) => r.status },
+        { label: lang === 'ar' ? 'المستحقات النهائية' : 'Final Settlement', value: (r) => r.finalSettlement || 0, type: 'money' },
+      ] },
+      fingerprint_imports: { collection: 'fingerprintImports', filename: 'fingerprint-imports', sheetName: lang === 'ar' ? 'استيراد البصمات' : 'Fingerprint Imports', columns: [
+        { label: lang === 'ar' ? 'التاريخ' : 'Date', value: (r) => r.importedAt, type: 'date' },
+        { label: lang === 'ar' ? 'الملف' : 'File', value: (r) => r.filename },
+        { label: lang === 'ar' ? 'الإجمالي' : 'Total', value: (r) => r.totalRows, type: 'number' },
+        { label: lang === 'ar' ? 'معترف بها' : 'Recognized', value: (r) => r.recognized, type: 'number' },
+        { label: lang === 'ar' ? 'غير معروفة' : 'Unknown', value: (r) => r.unknown || 0, type: 'number' },
+        { label: lang === 'ar' ? 'مكررة' : 'Duplicates', value: (r) => r.duplicates || 0, type: 'number' },
+        { label: lang === 'ar' ? 'أخطاء' : 'Errors', value: (r) => r.errors || 0, type: 'number' },
+      ] },
+      audit: { collection: 'auditLog', filename: 'audit-trail', sheetName: lang === 'ar' ? 'سجل التدقيق' : 'Audit Trail', columns: [
+        { label: lang === 'ar' ? 'التاريخ' : 'Timestamp', value: (r) => r.timestamp, type: 'date' },
+        { label: lang === 'ar' ? 'الإجراء' : 'Action', value: (r) => r.action },
+        { label: lang === 'ar' ? 'الكيان' : 'Entity', value: (r) => r.entity },
+        { label: lang === 'ar' ? 'المعرف' : 'ID', value: (r) => r.entityId || '' },
+        { label: lang === 'ar' ? 'المستخدم' : 'User', value: (r) => r.userName || r.user },
+        { label: lang === 'ar' ? 'التفاصيل' : 'Details', value: (r) => JSON.stringify(r.detail || {}), wrap: true },
+      ] },
     };
     const report = REPORTS[id];
     if (!report) {
@@ -311,8 +440,11 @@ window.ZenReports = (function () {
       return;
     }
     const rows = S.getCollection(report.collection);
-    ZenExport.toExcel(rows, report.columns, `zenhr-${report.filename}.xls`, report.filename);
-    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير' : 'Exported', 'success');
+    if (!rows.length) { UI.toast(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
+    const filename = `agrimasters-${report.filename}-${U.today()}.xlsx`;
+    ZenExport.toXLSX(rows, report.columns, filename, report.sheetName, { title: 'AGRIMASTERS HR — ' + report.sheetName });
+    if (window.ZenAudit) ZenAudit.logExport(report.collection, { count: rows.length, filename });
+    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير بصيغة XLSX' : 'Exported as XLSX', 'success');
   }
 
   return { render };

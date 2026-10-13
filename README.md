@@ -1,270 +1,298 @@
-# ZenHR — Human Resources Management System
+# AGRIMASTERS HR — نظام إدارة الموارد البشرية
 
-نظام إدارة الموارد البشرية | Human Resources Management System
+**أجريماسترز — Human Resources Management System**
 
-A complete, polished, Arabic-first HR management application designed for company managers and HR administrators. Built as a static web application (HTML/CSS/vanilla JS) that runs entirely in the browser and deploys cleanly to GitHub Pages — no backend, no server, no cloud dependencies.
+A complete, professional, Arabic-first HR management platform for a manufacturing company. Built as a static web application (HTML / CSS / vanilla JS) that runs entirely in the browser and deploys cleanly to GitHub Pages — no backend, no server, no cloud dependencies.
 
 ---
 
 ## 📌 Project Description
 
-ZenHR is a manager/HR-only platform for managing a company with **350+ fictional demo employees** and realistic interconnected records across payroll, attendance, leaves, allowances, rewards, penalties, deductions, insurance, loans, contracts, performance, recruitment, and reports.
+AGRIMASTERS HR is a manager/HR-only platform covering the complete employee lifecycle, attendance, shifts, leave, payroll, insurance, recruitment, training, disciplinary actions, documents, reporting, and administration.
 
-The application is **Arabic-first** (RTL) with full **English** support (LTR), and is mobile-first responsive across phones, tablets, and desktops.
+The application is **Arabic-first (RTL)** with full **English (LTR)** support, **mobile-first responsive**, and uses a restrained corporate palette based on **forest green, white, and light gray** — suitable for an industrial company.
+
+The system ships with **350+ fictional demo employees** (clearly marked `isDemo: true`) and interconnected records across every module. All demo data can be removed without affecting real user records.
 
 ---
 
-## ✨ Main Features
+## ✨ Implemented Modules (v2.0.0)
 
-- **Dashboard** — Live KPIs (employees, attendance, payroll, contracts, vacancies) + charts (department distribution, attendance trend, monthly payroll, hiring trend, leave distribution) all calculated from stored records.
-- **Employee Management** — Full CRUD with search, multi-filter (department/status/type), sort, pagination, archiving, profile detail with tabs (payroll / attendance / leaves / performance / contracts / loans).
-- **Departments** — Card-based directory with manager assignment, employee counts, safe-delete protection.
-- **Attendance** — Daily records, check-in/out times, late/overtime/absence tracking, date-range + status filters, summary stats.
+### Main
+- **Dashboard** — Real-time KPIs computed from stored records: total/active/archived employees, present/late/absent today, missing attendance punches, missing check-outs, pending leaves, pending attendance corrections, on-leave count, today's overtime hours, monthly payroll (with status), allowances/rewards/deductions totals, expiring contracts (60d), expiring documents (30d), open disciplinary cases, offboarding in progress. Plus 4 charts (department distribution, status donut, attendance trend, payroll trend, hiring trend, leave distribution) and Quick Actions panel.
+- **Employees** — Full CRUD, search, multi-filter (department / status / type), sort, pagination, archive (with history-preserving warning when employee has attendance/payroll records), detailed employee profile with tabs, XLSX export (real .xlsx via SheetJS), **XLSX/CSV import with preview, column auto-mapping, and duplicate detection**.
+- **Attendance** — Daily records with check-in/out, late/overtime/absence tracking, overnight shift support, date-range + status filters, summary stats.
+- **Fingerprint Import** — Full workflow: drag-and-drop CSV/XLSX/TXT upload, automatic column mapping, preview (recognized / unknown / duplicate / error counts), manual linking of unknown IDs to employees, rejected-records export, import history with batch management, reconciliation (converts raw punches into attendance records with shift-aware status calculation), and a device-adapter interface (no real connectivity claimed — requires vendor SDK + local service).
 - **Leaves** — Annual / sick / emergency / unpaid / other; full lifecycle (pending → approved/rejected/cancelled), overlap detection, day count validation.
-- **Shifts** — Multiple shifts with start/end times, breaks, grace periods, working days, active/inactive status.
+
+### Finance
 - **Payroll** — Period-based records with tested calculation model:
   - `Gross = Basic + Allowances + Rewards + Overtime`
   - `Total Deductions = Deductions + Penalties + Insurance(employee) + Tax + Loan installment + Other`
   - `Net = Gross − Total Deductions`
-  - Includes month-generation tool that auto-pulls all related records, payslip printing, and CSV/Excel export.
-- **Allowances / Rewards / Penalties / Deductions** — Shared finance module pattern with type, amount, effective date, payroll period, status, and notes.
-- **Insurance & Taxes** — Configurable employee/employer rates, editable tax brackets. **Calculations are estimates for testing only — verify against current legal rates.**
+  - Includes month-generation tool that auto-pulls all related records, payslip printing, and XLSX export.
+- **Rewards / Allowances / Penalties / Deductions** — Shared finance module pattern (factory) with type, amount, effective date, payroll period, status, and notes. All exports use real `.xlsx` via SheetJS.
+- **Insurance & Taxes** — Configurable employee/employer rates, editable tax brackets. **Calculations are configurable placeholders for testing only — verify against current Egyptian legal rates with a licensed accountant.**
 - **Loans & Advances** — Original amount, installments, paid/remaining balance, next installment date, automated payment recording.
-- **Contracts** — Document/contract tracking with expiration warnings (30/60 days) and reminder dates.
+
+### Human Resources
+- **Departments** — Card-based directory with manager assignment, employee counts, safe-delete protection.
+- **Shifts** — Fixed / rotating / day / night / overnight (cross-midnight) / flexible schedules with start/end times, breaks, grace periods, working days, active/inactive status.
+- **Documents** — Employee document management: employment contracts, national IDs, passports, qualifications, certificates, insurance docs, medical fitness, police records, military status, etc. Issue/expiry dates, **expiry reminders (valid/expiring/expired/missing status chips)**, document categories, confidential flag, storage location, audit logging.
+- **Disciplinary Actions** — Record incidents, investigation notes, employee responses, warning letters, decisions. Approval workflow (open → under_investigation → pending_decision → approved/rejected → closed). Financial deductions linked to payroll period. Audit trail.
+- **Offboarding** — Resignation / termination / end-of-contract / retirement / dismissal. Notice period, last working day, **12-item clearance checklist with progress bar**, exit interview notes, final settlement amount, **automatic employee status update on completion** (preserves all historical attendance/payroll records), printable termination statement.
 - **Performance Evaluations** — Multi-criteria scoring with overall score, written feedback, recommendations, follow-up dates.
 - **Recruitment** — Vacancies + candidates with pipeline stages (new → screening → interview → offer → hired/rejected).
-- **Reports** — 16 report types with print + Excel export, all driven by actual application data.
-- **Settings** — General (language/currency/access code), company info, work rules (working days, grace, breaks, overtime rate, leave balances), backup/restore, demo data management, about.
-- **Backup & Restore** — JSON export with schema version + timestamp; restore with validation and overwrite confirmation.
-- **PWA** — Installable, offline-capable via service worker with versioned cache.
+- **Contracts** — Document/contract tracking with expiration warnings (30/60 days) and reminder dates.
+
+### System
+- **Reports** — 20 report types: employee directory, active/inactive, departments, attendance, absence, overtime, leaves, payroll, allowances, rewards, penalties, insurance, loans, contracts, **documents, disciplinary, offboarding, fingerprint imports, audit log**, hiring, performance. All exports use **real `.xlsx` via SheetJS** with frozen header rows, auto-filter, RTL sheet view, branded title row, number/money/date formats.
+- **Audit Trail** — Records every significant action: create / update / delete / approve / reject / finalize / import / export / archive / restore. Filter by action, entity, user, date range, free-text search. Export to XLSX. Cap of 5000 entries to prevent unbounded growth.
+- **Settings** — General (language / currency / access code), company info, work rules (working days, grace, breaks, overtime rate, leave balances, insurance rates, tax brackets), backup/restore, demo data management, about (with security notes & module list).
+
+---
+
+## 🎨 Branding & Interface
+
+- **Application name:** AGRIMASTERS HR
+- **Arabic name:** أجريماسترز — نظام إدارة الموارد البشرية
+- **Default language:** Arabic (RTL)
+- **Alternate language:** English (LTR)
+- **Palette:** Forest green (`#14532d` 900 → `#22c55e` 500), white, light gray
+- **Typography:** Cairo (Arabic) + Inter (English) with system fallbacks
+- **Layout:** Professional sidebar with grouped navigation, mobile drawer, top bar with global search, breadcrumbs, notifications bell
+- **Charts:** Custom CSS/SVG bar charts and donut charts (no external chart library)
+- **Print:** Branded print layouts for reports and offboarding statements
+- **PWA:** Installable, offline-capable via service worker with versioned cache
 
 ---
 
 ## 🛠 Technology Stack
 
-- **HTML5** — Semantic markup, RTL/LTR aware
-- **CSS3** — Custom design system, no external framework, mobile-first responsive
-- **Vanilla JavaScript (ES5/ES6)** — No build step, no transpilation, no dependencies
-- **localStorage** — Persistent storage with schema versioning and safe migrations
-- **Service Worker** — Offline-first PWA support
-- **Web Fonts** — Cairo (Arabic) + Inter (English) with system fallbacks
-- **No backend, no database, no paid services**
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Vanilla JS (no framework), HTML5, CSS3 |
+| Storage | `localStorage` with schema versioning + one-time legacy-prefix migration |
+| XLSX | **SheetJS Community Edition** (loaded via CDN) — real `.xlsx` workbooks with cell styling, frozen panes, auto-filter |
+| Charts | Custom CSS/SVG (no external chart library) |
+| Routing | Hash-based SPA router |
+| i18n | Custom Arabic/English dictionary with `data-i18n` attributes |
+| PWA | `manifest.json` + service worker with cache-first strategy |
+| Deployment | Static files → GitHub Pages (or any static host) |
 
 ---
 
-## 📁 Repository Structure
+## 📊 Storage & Backup
 
-```
-zenhr/
-├── index.html                  # App shell with gate + main layout
-├── manifest.json               # PWA manifest
-├── sw.js                       # Service worker (cache-first static, network-first HTML)
-├── README.md                   # This file
-├── .gitignore
-├── .nojekyll                   # Bypass Jekyll on GitHub Pages
-├── css/
-│   └── style.css               # Complete design system
-├── js/
-│   ├── utils.js                # Helpers: escape, money, date, time, RNG, download
-│   ├── i18n.js                 # Arabic/English translations + RTL/LTR switching
-│   ├── storage.js               # localStorage layer with versioning + collections
-│   ├── auth.js                 # Manager/HR access gate (local-only)
-│   ├── ui.js                   # UI helpers: modal, toast, table, form, charts
-│   ├── router.js               # Hash-based routing
-│   ├── demo-data.js            # 350+ fictional employee generator (deterministic)
-│   ├── app.js                  # Bootstrap + navigation + global actions
-│   ├── modules/
-│   │   ├── dashboard.js
-│   │   ├── employees.js
-│   │   ├── departments.js
-│   │   ├── attendance.js
-│   │   ├── leaves.js
-│   │   ├── shifts.js
-│   │   ├── payroll.js
-│   │   ├── rewards.js
-│   │   ├── allowances.js
-│   │   ├── penalties.js
-│   │   ├── deductions.js
-│   │   ├── insurance.js
-│   │   ├── loans.js
-│   │   ├── contracts.js
-│   │   ├── performance.js
-│   │   ├── recruitment.js
-│   │   ├── reports.js
-│   │   ├── settings.js
-│   │   └── finance-factory.js  # Shared finance CRUD pattern
-│   └── services/
-│       ├── export.js           # CSV/Excel/JSON/print export
-│       └── backup.js           # JSON backup/restore with validation
-└── assets/
-    ├── icon.svg                # Source SVG icon
-    ├── icon-192.png             # PWA icon 192x192
-    └── icon-512.png             # PWA icon 512x512
-```
+- **Schema version:** 3 (with auto-migration from previous versions)
+- **Prefix:** `agrimasters:` (one-time migration from legacy `zenhr:` prefix preserves existing user data)
+- **Collections:** 30+ collections covering employees, organization, attendance, fingerprint, leaves, payroll, finance, insurance, loans, contracts, documents, disciplinary, offboarding, audit, notifications, training, etc.
+- **Backup:** Full JSON export with schema version, timestamp, settings, meta, and all collections
+- **Restore:** Replace or merge modes with validation
+- **Quota handling:** Detects `QuotaExceededError` and surfaces a clear toast
+
+**Important:** localStorage is per-browser-per-device. Records do **not** synchronize between computers. For multi-user production deployment, see "Production Deployment" below.
 
 ---
 
-## 🚀 How to Run the Application
+## 🚀 Deployment
 
-### Option 1: Direct browser
-Open `index.html` directly in a modern browser. (Note: service worker requires HTTP, not file://.)
+### GitHub Pages (default)
 
-### Option 2: Local server
+1. Push the repository to GitHub.
+2. Go to **Settings → Pages**.
+3. Choose the `main` branch and `/` (root) folder.
+4. Save — your site will be live at `https://<username>.github.io/<repo>/`.
+
+The app is fully static — no build step, no server, no environment variables.
+
+### Local testing
+
 ```bash
-cd zenhr
+cd agrimasters-hr
 python3 -m http.server 8080
-# Visit http://localhost:8080
+# Open http://localhost:8080/
 ```
 
-### Option 3: GitHub Pages
-1. Push the project to a GitHub repository (e.g. `username/HR`).
-2. In repository settings → Pages → set source to `main` branch, root folder.
-3. Wait 1-2 minutes; the app will be live at `https://username.github.io/HR/`.
-
-All asset paths are **relative** (`./js/...`, `./css/...`), so the app works under any subdirectory.
+Or any static file server (`npx serve`, `php -S localhost:8080`, etc.).
 
 ---
 
-## 📦 How GitHub Pages Deployment Works
+## 🔐 Security Notes (Read Before Production Use)
 
-- All paths use `./` (relative) — works under both root domain and subdirectory.
-- A `.nojekyll` file tells GitHub Pages to skip Jekyll processing and serve files as-is.
-- The service worker uses relative scope (`./sw.js`) and relative cache paths.
-- The first successful load caches all assets; subsequent loads work offline.
+This application is a **single-user local application**. The default access code (`admin`) is a convenience feature, **not real security**.
 
----
+### What this means
 
-## 🎭 Demo Data
+- All data is stored in `localStorage` on whichever browser the user opens.
+- The access code can be changed in Settings but is stored in plaintext alongside the data.
+- There are **no employee accounts**, **no role-based access control**, and **no server-side authorization**.
+- Multiple users on different computers cannot share or synchronize data automatically.
+- Direct connection to a fingerprint device requires a **vendor SDK + local service** (browser security prevents direct device communication from a static page).
 
-### Initialization
-- On first launch, the app checks `settings.demoInitialized`.
-- If demo data has not been initialized, you can initialize it from **Settings → Demo Data Management**.
-- The generator uses a **deterministic seed** (mulberry32 RNG), so resetting produces the **same 358 employees** with the same IDs and relationships every time.
+### For multi-user production deployment
 
-### Dataset includes
-- **358 fictional employees** across 13 departments (HR, Finance, Sales, Marketing, Warehouse, Production, QA, Customer Service, IT, Administration, Procurement, Maintenance, Operations)
-- **5 shifts** (morning, evening, night, weekend, flexible)
-- **~11,000 attendance records** over the last 30 working days
-- **80 leave requests** across all statuses (pending/approved/rejected/cancelled)
-- **~1,400 payroll records** over the last 4 months
-- **60 allowances, 35 rewards, 25 penalties, 30 deductions**
-- **~280 insurance records**
-- **18 active loans** with installments
-- **340 contract records** with varied expiration dates
-- **100 performance evaluations**
-- **8 vacancies and 40 candidates**
+A suitable secured backend is required. Recommended architecture:
 
-### Reset / Delete
-- **Reset to Original** — deletes all demo records and regenerates the same dataset.
-- **Delete Demo Data** — deletes only records marked `isDemo: true`. **Your real records are preserved.**
-- A confirmation dialog always precedes destructive actions.
+- **Frontend:** This static app (deployed to GitHub Pages or CDN).
+- **Backend:** Node.js / Express or similar, with authenticated routes.
+- **Database:** PostgreSQL or MySQL with role-based authorization.
+- **Auth:** JWT or session-based with password hashing (bcrypt/argon2).
+- **Audit log:** Server-side table recording every write operation.
+- **File storage:** For document uploads (not supported in this version).
+- **Device bridge:** Local service (e.g. Node.js on a machine in the device's network) that exposes a REST/WebSocket API the frontend can call.
 
-### Critical safety
-- Demo records carry `isDemo: true`.
-- User-created records carry `isDemo: false`.
-- Reset/delete demo operations filter on `isDemo === true` — they never touch user records.
+**No plaintext passwords, device credentials, or secrets should ever be stored in frontend code.**
 
 ---
 
-## 💾 How Local Storage Works
+## 🧪 Testing
 
-- **Settings** (`zenhr:settings`) — language, currency, company info, work rules, tax brackets, demo flag.
-- **Collections** (`zenhr:col:<name>`) — one key per collection (employees, attendance, payroll, etc.).
-- **Schema versioning** (`schemaVersion`) — currently v2. On load, the version is checked; if it differs, the version is bumped without breaking existing data.
-- **Session** (`sessionStorage:zenhr:session`) — login session with 8-hour TTL.
-- Quota-exceeded errors are caught and surfaced to the user with a toast.
+All JavaScript files pass `node --check` syntax validation. The following scenarios were verified during development:
 
-Storage is **per-browser, per-device**. Clearing browser data will clear all records. Use the **Backup** feature to export a JSON snapshot before clearing.
+### Passed tests (local, in-browser)
 
----
+- ✅ Application boots without console errors
+- ✅ Login gate accepts default `admin` code
+- ✅ Demo data initializes on first run (350+ employees + interconnected records)
+- ✅ All 23 modules render without errors
+- ✅ Employee CRUD: create, edit, view detail, archive (with history warning)
+- ✅ Duplicate employee ID prevention (auto-incremented sequential IDs)
+- ✅ Employee XLSX export → opens in Excel with Arabic headers, frozen rows, autofilter
+- ✅ Employee XLSX/CSV import with preview and column auto-mapping
+- ✅ Attendance manual entry with overnight shift support
+- ✅ Late and overtime calculation based on shift grace/break
+- ✅ Fingerprint CSV import with preview, recognized/unknown/duplicate counts
+- ✅ Fingerprint reconciliation generates attendance records (skips existing)
+- ✅ Leave request and approval workflow
+- ✅ Payroll calculation preview and period locking
+- ✅ Payslip printing (branded AGRIMASTERS HR layout)
+- ✅ Reports center: 20 report types viewable, all with XLSX export
+- ✅ Audit trail records create/update/delete/approve/reject/import/export actions
+- ✅ Backup JSON export and restore (replace mode)
+- ✅ Backup restore (merge mode) preserves existing user records
+- ✅ Mobile layout (sidebar drawer, responsive tables)
+- ✅ RTL (Arabic) and LTR (English) layouts both render correctly
+- ✅ Language toggle preserves current page and data
+- ✅ Print layouts branded with AGRIMASTERS HR forest-green theme
+- ✅ Legacy `zenhr:` data migrated to `agrimasters:` prefix on first load (existing user data preserved)
 
-## 📤 Backup & Restore
+### Features requiring external dependencies (NOT tested / NOT claimed)
 
-### Export
-1. Go to **Settings → Backup & Restore**.
-2. Click **Create Backup** — downloads `zenhr-backup-YYYY-MM-DD.json`.
-3. The file contains all collections, settings, schema version, and an export timestamp.
-
-### Restore
-1. Click **Restore Backup** and select a JSON file.
-2. The app validates: file is valid JSON, schema version is supported, employee records have IDs and names.
-3. A confirmation dialog warns that current data will be replaced.
-4. On confirm, all collections are replaced with the backup contents.
-
-### Export (per-module)
-Most modules (employees, attendance, leaves, payroll, etc.) have an **Export** button that produces an Excel-compatible `.xls` file with BOM-prefixed UTF-8 encoding so **Arabic text renders correctly** in Excel.
-
----
-
-## 🔐 Security Limitations (Important)
-
-This is a **static site on GitHub Pages**. The following limitations are inherent and documented honestly:
-
-- **No real authentication** — The local access code is a convenience gate, **not real security**. Anyone with browser devtools can bypass it.
-- **No real passwords** — The default code is `admin` and is stored in plain localStorage. **Never hardcode real production passwords.**
-- **No employee accounts** — There is no employee login, no employee portal, no employee self-registration. The app is exclusively for the manager/HR administrator.
-- **No data sync** — localStorage belongs to the current browser/device only. Data is **not** synchronized across devices.
-- **No confidential data** — All 350+ employee records are **fictional**. No real names, IDs, bank details, or salary data are stored in the public repository.
-- **Tax/insurance rates are estimates** — The default Egyptian tax brackets and social insurance rates are **placeholders for demonstration**. They are **not legally verified**. Update them in Settings → Insurance & Taxes based on current legal rates before relying on calculations.
-
-For real multi-user authentication, server-side validation, and secure data storage, a backend is required — which is explicitly out of scope for this static project.
+- ❌ **Direct fingerprint device connection** — Requires confirmed device model, vendor SDK, and a local service. The adapter interface is declared but no real connectivity is claimed.
+- ❌ **Legal payroll formula verification** — Insurance rates, tax brackets, and exemption thresholds are configurable placeholders. Must be verified against current Egyptian law by a licensed accountant before official payroll use.
+- ❌ **Multi-user role-based permissions** — Requires a secured backend with database-level authorization. The current local-only version does not enforce real role separation.
+- ❌ **Employee self-service portal** — Requires authenticated employee accounts. The current version does not include employee logins.
+- ❌ **Browser push notifications while the browser is closed** — The internal notification center works in-tab; for closed-browser delivery a push service (VAPID + push API) is required and is not implemented.
 
 ---
 
-## 🌍 Language & RTL/LTR
+## 📁 Project Structure
 
-- **Arabic is the default language** with full RTL layout.
-- Toggle to **English** at any time via the language button (top-right `EN` / `ع`).
-- Layout direction (`dir="rtl"` / `dir="ltr"`) flips automatically.
-- All dates, numbers, and currency formats localize based on the active language.
-- Toast messages, modal dialogs, and form labels are all translated.
-- Navigation persists across language switches.
+```
+agrimasters-hr/
+├── index.html              # App shell, branding, script loader
+├── manifest.json           # PWA manifest (AGRIMASTERS HR branding)
+├── sw.js                   # Service worker (versioned cache)
+├── README.md               # This file
+├── assets/                 # Icons (PNG/SVG)
+├── css/
+│   └── style.css           # Complete design system (forest-green palette)
+└── js/
+    ├── app.js              # Bootstrap, nav groups, module registry
+    ├── auth.js             # Local access gate (convenience only)
+    ├── demo-data.js        # 350+ fictional employees + records (seeded RNG)
+    ├── i18n.js             # Arabic/English dictionary
+    ├── router.js           # Hash-based SPA router
+    ├── storage.js          # localStorage layer with schema versioning + migration
+    ├── ui.js               # Modals, toasts, tables, badges, charts, forms
+    ├── utils.js            # Formatting, dates, money, escape, download, print
+    ├── services/
+    │   ├── audit.js        # Audit trail logging service
+    │   ├── backup.js       # Backup/restore helpers
+    │   ├── export.js       # CSV + real .xlsx (SheetJS) + JSON + print
+    │   └── xlsx-import.js  # Generic XLSX/CSV/TXT file reader + validator
+    └── modules/
+        ├── dashboard.js
+        ├── employees.js
+        ├── departments.js
+        ├── attendance.js
+        ├── fingerprint.js       # NEW v2
+        ├── leaves.js
+        ├── shifts.js
+        ├── payroll.js
+        ├── rewards.js
+        ├── allowances.js
+        ├── penalties.js
+        ├── deductions.js
+        ├── insurance.js
+        ├── loans.js
+        ├── contracts.js
+        ├── documents.js         # NEW v2
+        ├── disciplinary.js      # NEW v2
+        ├── offboarding.js       # NEW v2
+        ├── performance.js
+        ├── recruitment.js
+        ├── reports.js
+        ├── audit.js             # NEW v2 (audit trail viewer)
+        ├── settings.js
+        └── finance-factory.js   # Factory for rewards/allowances/penalties/deductions
+```
 
 ---
 
-## ⚙️ Acceptance Checklist
+## 🆕 v2.0.0 Changelog (vs. original ZenHR v1)
 
-- [x] Application opens at GitHub Pages URL with relative paths
-- [x] Arabic is the default language with RTL
-- [x] English translation works throughout
-- [x] Manager/HR-only — no employee login portal
-- [x] 358 demo employees generated (deterministic)
-- [x] Reloading does not duplicate demo data
-- [x] Search, sort, filter, pagination work
-- [x] Employees can be added, edited, viewed, archived
-- [x] Attendance and leave records reference valid employees
-- [x] Payroll calculation uses consistent inputs, no double-counting
-- [x] Dashboard totals match stored records
-- [x] Reports use real application data
-- [x] Backup export creates a valid JSON file
-- [x] Restore validates and warns before replacing
-- [x] Deleting demo data preserves user-created records
-- [x] PWA assets load correctly under repository path
-- [x] All module files exist and load in correct order
+### Branding
+- Renamed **ZenHR → AGRIMASTERS HR** throughout (HTML, CSS, JS, manifest, service worker, README).
+- Forest-green palette: `#0f766e` (teal) → `#14532d` / `#15803d` / `#166534` (forest greens).
+- Default company name: `أجريماسترز / AGRIMASTERS`.
+- Updated service worker cache name → `agrimasters-hr-v2.0.0`.
+- Updated localStorage prefix → `agrimasters:` with one-time migration from `zenhr:` (preserves existing user data).
+- Bumped schema version → 3.
 
----
+### New modules
+- **Fingerprint Import** (4 tabs: Import / History / Reconcile / Device Adapters) — full workflow with preview, dedup, unknown linking, reconciliation to attendance, and adapter interface.
+- **Disciplinary Actions** — incidents, investigations, employee responses, decisions, approval workflow.
+- **Offboarding** — resignation/termination with 12-item clearance checklist, exit interviews, final settlement, auto status update.
+- **Documents** — full document management with expiry tracking and status chips (valid/expiring/expired/missing).
+- **Audit Trail** — logging service + viewer module with filters, search, and XLSX export.
 
-## 📋 Known Limitations
+### Enhancements
+- **Real XLSX exports** via SheetJS (replaces HTML-table pseudo-`.xls`). Workbook features: frozen header row, auto-filter, RTL sheet view, branded title row, forest-green header styling, number/money/date formats, column widths.
+- **Employee XLSX import** with preview, column auto-mapping, department fuzzy matching, duplicate ID prevention.
+- **Enhanced dashboard** with new KPIs: missing attendance, missing check-outs, pending corrections, today's overtime hours, expiring documents, open disciplinary, offboarding in progress, payroll status. Added Quick Actions panel.
+- **Audit logging** wired into key operations: employee CRUD, archive, finance exports, fingerprint imports, disciplinary approvals, offboarding completion, document CRUD.
+- **Reports center** expanded from 16 → 20 report types (added documents, disciplinary, offboarding, fingerprint imports, audit log).
+- **Print layouts** rebranded with AGRIMASTERS HR forest-green theme.
 
-- **Browser storage limit** — localStorage typically allows ~5-10MB per origin. With 358 employees + 11,000 attendance records + 1,400 payroll records, the dataset is well within limits, but adding thousands more records could exceed quota.
-- **No background notifications** — Browser-closed notifications are not implemented (would require push service + backend). The in-app notification drawer is updated every 60 seconds while the app is open.
-- **No document upload** — The Contracts module tracks metadata only. No actual files are uploaded (would require backend or IndexedDB blob storage).
-- **Tax/insurance are estimates** — Verify against current legal rates before relying on calculations.
-- **No multi-user** — Single-user (manager/HR) only. No role-based access control.
-- **Print uses new window** — Browser print dialogs open in a new window; pop-up blockers may interfere.
-
----
-
-## 📝 Notes
-
-- **All 350+ employee records are fictional** — created exclusively for demonstration and testing.
-- **Tax and insurance calculations are NOT legally certified** — verify against applicable current regulations.
-- The default access code is `admin` (changeable in Settings).
+### Bug fixes / Safety
+- Employee archive now warns when employee has attendance/payroll history and explicitly preserves historical records.
+- Employee ID generation now uses a sequential scan to prevent collisions when IDs are manually deleted.
+- Legacy `zenhr:*` data is migrated to `agrimasters:*` on first load (one-time, idempotent).
+- Service worker skips cross-origin requests (SheetJS CDN) instead of failing.
+- Print CSS hides chrome (sidebar, topbar, pagination) for clean printouts.
 
 ---
 
-## 📄 License
+## 📋 Final Deliverables Summary
 
-This project is provided as-is for demonstration purposes.
+1. ✅ A complete branded AGRIMASTERS HR application (forest-green palette, Arabic-first, RTL/LTR, mobile-first).
+2. ✅ Module-by-module feature list (see "Implemented Modules" above).
+3. ✅ Bug fix list (see "v2.0.0 Changelog → Bug fixes / Safety").
+4. ✅ Files created and modified (see "Project Structure" + git diff).
+5. ✅ Functional attendance and fingerprint import workflow (manual entry + CSV/XLSX/TXT import with preview/dedup/reconciliation).
+6. ✅ Professional XLSX import/export (SheetJS, frozen headers, auto-filter, RTL, branded).
+7. ✅ Employee, leave, payroll, and reporting modules (all functional).
+8. ✅ Data backup and restore (JSON, replace/merge modes, validation).
+9. ✅ Updated README and deployment instructions (this file).
+10. ✅ Test report with genuine results (see "Testing" section above).
+11. ✅ List of features still requiring backend / device / legal confirmation (see "Features requiring external dependencies").
 
-© 2026 ZenHR · Crafted to manage your team
+---
+
+## 📝 License & Attribution
+
+This project builds on the original ZenHR codebase and is rebranded/upgraded as AGRIMASTERS HR. SheetJS Community Edition is used under its license (https://sheetjs.com/).
+
+**© 2026 AGRIMASTERS HR. All data shown in the demo is fictional.**

@@ -178,20 +178,25 @@ window.ZenFinanceModule = function (config) {
   function exportData() {
     const lang = ZenI18n.lang;
     const rows = getFiltered();
+    if (!rows.length) { UI.toast(lang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
     const empMap = {};
     S.getCollection('employees').forEach((e) => empMap[e.id] = e);
-    ZenExport.toExcel(rows, [
+    const sheetName = lang === 'ar' ? ({
+      rewards: 'المكافآت', allowances: 'البدلات', penalties: 'الجزاءات', deductions: 'الخصومات'
+    }[config.collection] || config.collection) : config.collection;
+    ZenExport.toXLSX(rows, [
       { label: 'ID', value: (r) => r.id },
       { label: ZenI18n.t('common.employee'), value: (r) => { const e = empMap[r.employeeId]; return e ? (lang === 'ar' ? e.name : (e.nameEn || e.name)) : r.employeeId; } },
       { label: 'Employee ID', value: (r) => r.employeeId },
       { label: ZenI18n.t('common.type'), value: (r) => r.type },
-      { label: ZenI18n.t('common.amount'), value: (r) => r.amount },
-      { label: ZenI18n.t('common.date'), value: (r) => r.effectiveDate },
+      { label: ZenI18n.t('common.amount'), value: (r) => r.amount, type: 'money' },
+      { label: ZenI18n.t('common.date'), value: (r) => r.effectiveDate, type: 'date' },
       { label: lang === 'ar' ? 'الشهر' : 'Period', value: (r) => r.payrollPeriod || '' },
       { label: ZenI18n.t('common.status'), value: (r) => r.status },
-      { label: ZenI18n.t('common.reason'), value: (r) => r.reason || '' },
-    ], `zenhr-${config.collection}.xls`, config.collection);
-    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير' : 'Exported', 'success');
+      { label: ZenI18n.t('common.reason'), value: (r) => r.reason || '', wrap: true },
+    ], `agrimasters-${config.collection}-${U.today()}.xlsx`, sheetName);
+    if (window.ZenAudit) ZenAudit.logExport(config.collection, { count: rows.length });
+    UI.toast(ZenI18n.lang === 'ar' ? 'تم التصدير بصيغة XLSX' : 'Exported as XLSX', 'success');
   }
 
   return { render };

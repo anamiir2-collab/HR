@@ -1,5 +1,5 @@
 /* ============================================================
-   ZenHR — Settings Module
+   AGRIMASTERS HR — Settings Module
    Includes: General, Company, Rules, Backup/Restore, Demo Data, About
    ============================================================ */
 window.ZenSettings = (function () {
@@ -263,20 +263,26 @@ window.ZenSettings = (function () {
     c.innerHTML = `
       <div class="card">
         <div style="text-align:center;padding:20px 0">
-          <div class="brand-mark" style="margin:0 auto 12px;width:72px;height:72px;font-size:36px;border-radius:18px">Z</div>
-          <h2 style="margin:0 0 4px">ZenHR</h2>
+          <div class="brand-mark" style="margin:0 auto 12px;width:72px;height:72px;font-size:36px;border-radius:18px">A</div>
+          <h2 style="margin:0 0 4px">AGRIMASTERS HR</h2>
           <p style="color:var(--text-muted)">${lang === 'ar' ? 'نظام إدارة الموارد البشرية' : 'Human Resources Management System'}</p>
-          <p style="color:var(--text-muted);font-size:13px;margin-top:8px">v1.0.0</p>
+          <p style="color:var(--text-muted);font-size:13px;margin-top:8px">v2.0.0</p>
         </div>
         <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
         <h4>${lang === 'ar' ? 'ملاحظات أمنية مهمة' : 'Important Security Notes'}</h4>
         <ul style="padding-inline-start:20px;color:var(--text-muted);font-size:13px;line-height:1.8">
           <li>${lang === 'ar' ? 'هذا التطبيق يعمل بدون خادم خلفي. المصادقة المحلية هي للسهولة فقط وليست حماية أمنية فعلية.' : 'This app runs without a backend. Local authentication is a convenience feature, not real security.'}</li>
-          <li>${lang === 'ar' ? 'البيانات محفوظة محلياً على جهازك (localStorage) ولا تتم مز擅ننها بين الأجهزة.' : 'Data is stored locally (localStorage) and is NOT synchronized across devices.'}</li>
-          <li>${lang === 'ar' ? 'حسابات الضرائب والتأمين تقديرية للأغراض التوضيحية فقط - راجع المعدلات القانونية الحالية.' : 'Tax and insurance calculations are estimates for demo only — verify against current legal rates.'}</li>
-          <li>${lang === 'ar' ? 'جميع بيانات الموظفين الـ 350+ خيالية لأغراض العرض.' : 'All 350+ employee records are fictional for demonstration purposes.'}</li>
-          <li>${lang === 'ar' ? 'لا توجد بوابة دخول للموظفين أو حسابات موظفين.' : 'No employee login portal or employee accounts exist.'}</li>
+          <li>${lang === 'ar' ? 'البيانات محفوظة محليًا على جهازك (localStorage) ولا تتم مزامنتها بين الأجهزة.' : 'Data is stored locally (localStorage) and is NOT synchronized across devices.'}</li>
+          <li>${lang === 'ar' ? 'حسابات الضرائب والتأمين قابلة للتهيئة للأغراض التوضيحية فقط — راجع المعدلات القانونية الحالية مع المحاسب القانوني.' : 'Tax and insurance calculations are configurable for demo only — verify against current legal rates with a licensed accountant.'}</li>
+          <li>${lang === 'ar' ? 'جميع بيانات الموظفين الـ 350+ خيالية لأغراض العرض ومعلّمة كـ isDemo.' : 'All 350+ employee records are fictional for demonstration purposes and marked as isDemo.'}</li>
+          <li>${lang === 'ar' ? 'لا توجد بوابة دخول للموظفين أو حسابات موظفين في هذا الإصدار. يتطلب ذلك خادم خلفي معتمد.' : 'No employee login portal or employee accounts exist in this version. That requires an authenticated backend.'}</li>
+          <li>${lang === 'ar' ? 'الاتصال المباشر بأجهزة البصمة يتطلب خدمة محلية وSDK من المورد — لا يتم تفعيله من GitHub Pages وحده.' : 'Direct fingerprint device connection requires a local service and vendor SDK — it cannot be enabled from GitHub Pages alone.'}</li>
         </ul>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+        <h4>${lang === 'ar' ? 'الوحدات المنفذة' : 'Implemented Modules'}</h4>
+        <p style="color:var(--text-muted);font-size:13px;line-height:1.8">
+          ${lang === 'ar' ? 'لوحة التحكم، الموظفون، الحضور والانصراف، البصمة، الإجازات، المرتبات، البدلات، المكافآت، الجزاءات، الخصومات، التأمينات، السلف، الأقسام، الورديات، العقود، المستندات، التأديب، إنهاء الخدمة، تقييم الأداء، التوظيف، التقارير، سجل التدقيق، الإعدادات.' : 'Dashboard, Employees, Attendance, Fingerprint Import, Leaves, Payroll, Allowances, Rewards, Penalties, Deductions, Insurance, Loans, Departments, Shifts, Contracts, Documents, Disciplinary, Offboarding, Performance, Recruitment, Reports, Audit Trail, Settings.'}
+        </p>
       </div>
     `;
   }

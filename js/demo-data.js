@@ -1,7 +1,9 @@
 /* ============================================================
-   ZenHR — Demo Data Generator
+   AGRIMASTERS HR — Demo Data Generator
    Generates 350+ fictional employees + interconnected records
-   Deterministic (seeded) — reproducible on reset
+   Deterministic (seeded) — reproducible on reset.
+   All data is clearly marked as fictional (isDemo: true) and
+   can be removed without affecting real user records.
    ============================================================ */
 window.ZenDemoData = (function () {
   'use strict';

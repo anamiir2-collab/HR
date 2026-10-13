@@ -4,13 +4,13 @@
 window.ZenAuth = (function () {
   'use strict';
 
-  const SESSION_KEY = 'zenhr:session';
+  const SESSION_KEY = 'agrimasters:session';
   const SESSION_TTL = 1000 * 60 * 60 * 8; // 8 hours
 
   function login(password) {
     const pwd = (window.ZenStore && ZenStore.settings && ZenStore.settings.accessPassword) || 'admin';
     if (password === pwd) {
-      const session = { ts: Date.now(), user: 'admin', name: 'أمير أنور', nameEn: 'Amir Anwar' };
+      const session = { ts: Date.now(), user: 'admin', name: 'مدير الموارد البشرية', nameEn: 'HR Manager', role: 'admin' };
       try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
       return true;
     }
